@@ -8,9 +8,9 @@ export function CategorySelect({ categories, value, onChange }: { categories: st
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="max-w-[220px] appearance-none truncate rounded-lg border border-ink-200 bg-white py-1.5 pr-8 pl-8 text-xs font-medium text-ink-700 outline-none hover:border-ink-300 focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
+        className="w-[132px] appearance-none truncate rounded-lg border border-ink-200 bg-white py-1.5 pr-7 pl-8 text-base sm:w-auto sm:max-w-[220px] sm:text-xs font-medium text-ink-700 outline-none hover:border-ink-300 focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
       >
-        <option value="">Todas as categorias</option>
+        <option value="">Todas</option>
         {categories.map((c) => (
           <option key={c} value={c}>
             {c}

@@ -41,7 +41,7 @@ export function SearchView({ category }: { category: string }) {
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="ex.: alarme de potência baixa na fibra"
-            className="flex-1 bg-transparent px-1 text-[15px] outline-none placeholder:text-ink-400"
+            className="flex-1 bg-transparent min-w-0 px-1 text-base outline-none sm:text-[15px] placeholder:text-ink-400"
           />
           <button className="flex items-center gap-2 rounded-xl bg-brand-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-600" disabled={loading}>
             {loading && <Loader2 className="size-4 animate-spin" />} Pesquisar

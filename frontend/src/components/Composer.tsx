@@ -42,8 +42,8 @@ export function Composer({ busy, onSend, onStop, autoFocus }: Props) {
               submit();
             }
           }}
-          placeholder="Descreva a avaria, o alarme ou o sintoma…"
-          className="scroll-thin max-h-[200px] flex-1 resize-none bg-transparent px-3 py-2.5 text-[15px] outline-none placeholder:text-ink-400"
+          placeholder="Descreva a avaria ou o alarme…"
+          className="scroll-thin max-h-[200px] flex-1 resize-none bg-transparent px-3 py-2.5 text-base outline-none sm:text-[15px] placeholder:text-ink-400"
         />
         {busy ? (
           <button onClick={onStop} className="grid size-10 shrink-0 place-items-center rounded-xl bg-ink-900 text-white transition hover:bg-ink-700" aria-label="Parar">

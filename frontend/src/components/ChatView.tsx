@@ -46,12 +46,12 @@ export function ChatView({ user, messages, busy, loading, onSend, onStop }: Prop
         )}
       </div>
 
-      <div className="bg-gradient-to-t from-ink-50 via-ink-50 to-ink-50/0 px-4 pt-2 pb-4">
+      <div className="bg-gradient-to-t from-ink-50 via-ink-50 to-ink-50/0 px-3 pt-2 pb-[max(1rem,env(safe-area-inset-bottom))] sm:px-4">
         <div className="mx-auto max-w-3xl">
           <Composer busy={busy} onSend={onSend} onStop={onStop} autoFocus />
-          <p className="mt-2 flex items-center justify-center gap-1.5 text-center text-[11px] text-ink-400">
-            <ShieldAlert className="size-3" />
-            Respostas baseadas apenas no manual do técnico. Confirme sempre procedimentos críticos e normas de segurança.
+          <p className="mt-2 text-center text-[11px] leading-snug text-ink-400">
+            <ShieldAlert className="mr-1 inline size-3 -translate-y-px" />
+            Baseado apenas no manual do técnico. Confirme sempre procedimentos críticos e normas de segurança.
           </p>
         </div>
       </div>

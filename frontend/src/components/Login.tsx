@@ -89,7 +89,7 @@ export function Login({ onLogin }: { onLogin: (u: User) => void }) {
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 placeholder="ex.: jsilva"
-                className="peer w-full bg-transparent py-3 pr-3 text-sm outline-none placeholder:text-ink-300"
+                className="w-full bg-transparent py-3 pr-3 text-base outline-none sm:text-sm placeholder:text-ink-300"
                 required
               />
             </Field>
@@ -100,7 +100,7 @@ export function Login({ onLogin }: { onLogin: (u: User) => void }) {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full bg-transparent py-3 pr-3 text-sm outline-none placeholder:text-ink-300"
+                className="w-full bg-transparent py-3 pr-3 text-base outline-none sm:text-sm placeholder:text-ink-300"
                 required
               />
             </Field>
