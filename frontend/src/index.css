@@ -1,0 +1,60 @@
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+
+/*
+ * Tokens de marca (Unitel). Ajustar aqui se o manual de marca indicar outros valores.
+ * brand = laranja Unitel · ink = grafite para texto e superfícies escuras.
+ */
+@theme {
+  --font-sans: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
+
+  --color-brand-50: #fff4ec;
+  --color-brand-100: #ffe4d1;
+  --color-brand-200: #ffc5a0;
+  --color-brand-300: #ff9f66;
+  --color-brand-400: #ff8433;
+  --color-brand-500: #ff6a00;
+  --color-brand-600: #e85d00;
+  --color-brand-700: #c04b00;
+  --color-brand-800: #973d06;
+  --color-brand-900: #7a340a;
+
+  --color-ink-50: #f7f7f8;
+  --color-ink-100: #eeeef0;
+  --color-ink-200: #dcdce0;
+  --color-ink-300: #b9b9c0;
+  --color-ink-400: #8c8c96;
+  --color-ink-500: #676771;
+  --color-ink-600: #4d4d56;
+  --color-ink-700: #3a3a41;
+  --color-ink-800: #26262b;
+  --color-ink-900: #18181b;
+  --color-ink-950: #0f0f11;
+
+  --animate-fade-up: fade-up 0.35s ease-out both;
+  --animate-blink: blink 1s steps(2, start) infinite;
+
+  @keyframes fade-up {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: none; }
+  }
+  @keyframes blink {
+    to { visibility: hidden; }
+  }
+}
+
+html, body, #root { height: 100%; }
+body {
+  @apply bg-ink-50 text-ink-900 antialiased;
+}
+
+::selection { @apply bg-brand-200 text-ink-900; }
+
+.scroll-thin { scrollbar-width: thin; scrollbar-color: var(--color-ink-300) transparent; }
+.scroll-dark { scrollbar-width: thin; scrollbar-color: var(--color-ink-700) transparent; }
+
+/* Padrão de fundo "rede": pontos subtis */
+.bg-grid {
+  background-image: radial-gradient(circle at 1px 1px, rgb(255 255 255 / 0.18) 1px, transparent 0);
+  background-size: 22px 22px;
+}

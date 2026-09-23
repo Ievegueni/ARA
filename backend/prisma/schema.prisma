@@ -1,0 +1,89 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [vector]
+}
+
+enum Role {
+  TECNICO
+  ADMIN
+}
+
+enum MessageRole {
+  USER
+  ASSISTANT
+}
+
+/// Manual do técnico (uma versão = um documento)
+model Document {
+  id        String   @id @default(cuid())
+  title     String
+  version   String
+  fileName  String
+  pages     Int
+  createdAt DateTime @default(now())
+  chunks    Chunk[]
+
+  @@unique([title, version])
+}
+
+/// Excerto do manual com embedding (pgvector)
+model Chunk {
+  id         String                       @id @default(cuid())
+  documentId String
+  document   Document                     @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  ordinal    Int
+  section    String
+  category   String?
+  pageStart  Int
+  pageEnd    Int
+  text       String
+  tokens     Int
+  embedding  Unsupported("vector(1024)")?
+  createdAt  DateTime                     @default(now())
+
+  @@index([documentId])
+}
+
+model User {
+  id            String         @id @default(cuid())
+  username      String         @unique
+  name          String
+  passwordHash  String
+  section       String?
+  role          Role           @default(TECNICO)
+  createdAt     DateTime       @default(now())
+  conversations Conversation[]
+}
+
+model Conversation {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  messages  Message[]
+
+  @@index([userId, updatedAt])
+}
+
+model Message {
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  role           MessageRole
+  content        String
+  /// Fontes citadas: [{ chunkId, section, pageStart, pageEnd, score }]
+  sources        Json?
+  /// Feedback do técnico: 1 (útil) | -1 (não útil)
+  rating         Int?
+  createdAt      DateTime     @default(now())
+
+  @@index([conversationId, createdAt])
+}
