@@ -5,6 +5,7 @@ import { Login } from "./components/Login";
 import { Sidebar, type View } from "./components/Sidebar";
 import { ChatView } from "./components/ChatView";
 import { SearchView } from "./components/SearchView";
+import { ManualsView } from "./components/ManualsView";
 import { CategorySelect } from "./components/CategorySelect";
 import type { UiMessage } from "./components/MessageView";
 
@@ -53,10 +54,14 @@ function Shell({ user, onLogout }: { user: User; onLogout: () => void }) {
     api.conversations().then((r) => setConversations(r.conversations)).catch(() => {});
   }, []);
 
+  const refreshCategories = useCallback(() => {
+    api.categories().then((r) => setCategories(r.categories)).catch(() => {});
+  }, []);
+
   useEffect(() => {
     refreshConversations();
-    api.categories().then((r) => setCategories(r.categories)).catch(() => {});
-  }, [refreshConversations]);
+    refreshCategories();
+  }, [refreshConversations, refreshCategories]);
 
   function newConversation() {
     abortRef.current?.abort();
@@ -134,7 +139,7 @@ function Shell({ user, onLogout }: { user: User; onLogout: () => void }) {
   }
 
   const title =
-    view === "search" ? "Pesquisa no manual" : conversations.find((c) => c.id === activeId)?.title ?? "Nova conversa";
+    view === "search" ? "Pesquisa no manual" : view === "manuals" ? "Manuais" : conversations.find((c) => c.id === activeId)?.title ?? "Nova conversa";
 
   return (
     <div className="flex h-full">
@@ -161,7 +166,7 @@ function Shell({ user, onLogout }: { user: User; onLogout: () => void }) {
             <Menu className="size-5" />
           </button>
           <h2 className="min-w-0 flex-1 truncate text-sm font-semibold text-ink-800">{title}</h2>
-          <CategorySelect categories={categories} value={category} onChange={setCategory} />
+          {view !== "manuals" && <CategorySelect categories={categories} value={category} onChange={setCategory} />}
         </header>
 
         {view === "chat" ? (
@@ -173,8 +178,10 @@ function Shell({ user, onLogout }: { user: User; onLogout: () => void }) {
             onSend={send}
             onStop={() => abortRef.current?.abort()}
           />
-        ) : (
+        ) : view === "search" ? (
           <SearchView category={category} />
+        ) : (
+          <ManualsView onChanged={refreshCategories} />
         )}
       </main>
     </div>

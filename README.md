@@ -39,6 +39,16 @@ npm run dev                   # http://localhost:5173 (proxy /api → :3000)
 
 Sem chaves de API: `EMBEDDINGS_PROVIDER=local` e `RETRIEVAL_MIN_SCORE=0.15` permitem testar ingestão e pesquisa (qualidade semântica fraca). Há um PDF fictício em `backend/fixtures/manual-exemplo.pdf`.
 
+## Carregar manuais
+
+**Pela interface (recomendado):** entrar com um utilizador administrador → separador **Manuais** → arrastar o PDF, indicar título e versão → **Carregar manual**. O progresso é mostrado por etapas; no fim aparece o número de páginas e secções indexadas.
+
+- Reenviar o mesmo título + versão substitui o manual anterior; uma versão nova fica ao lado.
+- Só PDF com texto selecionável (PDF digitalizado precisa de OCR antes), máx. 100 MB.
+- Criar administrador: `npm run user:create -- admin 'PalavraPasse123' "Nome" --admin`
+
+**Pela linha de comandos (no servidor):** `npm run ingest -- manual.pdf --title "Manual do Técnico" --version 1.0`
+
 ## Validar o retrieval (Sprint 2)
 
 ```bash
@@ -54,6 +64,10 @@ Ou no separador **Pesquisa** da interface.
 | GET | `/api/search?q=&topK=&category=` | busca semântica (sem LLM) |
 | POST | `/api/chat` | `{question, conversationId?, category?}` → SSE (`meta`, `delta`, `done`, `error`) |
 | GET/DELETE | `/api/conversations[/:id]` | histórico do técnico |
+| GET | `/api/documents` | manuais carregados |
+| POST | `/api/documents` | (admin) multipart `title`, `version`, `file` → `202 {job}` |
+| GET | `/api/documents/jobs/:id` | (admin) progresso da ingestão |
+| DELETE | `/api/documents/:id` | (admin) apaga o manual e as secções |
 | POST | `/api/messages/:id/feedback` | `{rating: 1 \| -1 \| null}` — usado na validação (Sprint 5) |
 
 ## Deploy (VPS, fora da rede Unitel)

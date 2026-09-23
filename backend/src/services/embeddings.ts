@@ -8,16 +8,25 @@ export type EmbedInput = "document" | "query";
  * recomenda a Voyage AI. O provider "local" é apenas para desenvolvimento
  * (hashing de n-gramas, sem compreensão semântica real).
  */
-export async function embed(texts: string[], inputType: EmbedInput): Promise<number[][]> {
+export async function embed(
+  texts: string[],
+  inputType: EmbedInput,
+  onProgress?: (done: number, total: number) => void,
+): Promise<number[][]> {
   if (texts.length === 0) return [];
-  return config.EMBEDDINGS_PROVIDER === "voyage"
-    ? embedVoyage(texts, inputType)
-    : texts.map(localEmbedding);
+  if (config.EMBEDDINGS_PROVIDER === "voyage") return embedVoyage(texts, inputType, onProgress);
+  const out = texts.map(localEmbedding);
+  onProgress?.(texts.length, texts.length);
+  return out;
 }
 
 const VOYAGE_BATCH = 64;
 
-async function embedVoyage(texts: string[], inputType: EmbedInput): Promise<number[][]> {
+async function embedVoyage(
+  texts: string[],
+  inputType: EmbedInput,
+  onProgress?: (done: number, total: number) => void,
+): Promise<number[][]> {
   if (!config.VOYAGE_API_KEY) throw new Error("VOYAGE_API_KEY não definida");
   const out: number[][] = [];
   for (let i = 0; i < texts.length; i += VOYAGE_BATCH) {
@@ -38,6 +47,7 @@ async function embedVoyage(texts: string[], inputType: EmbedInput): Promise<numb
     if (!res.ok) throw new Error(`Voyage ${res.status}: ${await res.text()}`);
     const json = (await res.json()) as { data: { index: number; embedding: number[] }[] };
     json.data.sort((a, b) => a.index - b.index).forEach((d) => out.push(d.embedding));
+    onProgress?.(out.length, texts.length);
   }
   return out;
 }

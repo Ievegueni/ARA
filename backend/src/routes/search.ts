@@ -1,7 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { requireAuth } from "../lib/auth.js";
-import { prisma } from "../lib/db.js";
 import { listCategories, search } from "../services/retrieval.js";
 
 const query = z.object({
@@ -22,12 +21,4 @@ export async function searchRoutes(app: FastifyInstance) {
   });
 
   app.get("/api/categories", { preHandler: requireAuth }, async () => ({ categories: await listCategories() }));
-
-  app.get("/api/documents", { preHandler: requireAuth }, async () => {
-    const documents = await prisma.document.findMany({
-      orderBy: { createdAt: "desc" },
-      select: { id: true, title: true, version: true, fileName: true, pages: true, createdAt: true, _count: { select: { chunks: true } } },
-    });
-    return { documents };
-  });
 }

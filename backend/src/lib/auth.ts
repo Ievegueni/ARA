@@ -21,3 +21,10 @@ export async function requireAuth(req: FastifyRequest, reply: FastifyReply) {
     return reply.code(401).send({ error: "Sessão inválida ou expirada" });
   }
 }
+
+export async function requireAdmin(req: FastifyRequest, reply: FastifyReply) {
+  await requireAuth(req, reply);
+  if (!reply.sent && req.user.role !== "ADMIN") {
+    return reply.code(403).send({ error: "Acesso reservado a administradores" });
+  }
+}

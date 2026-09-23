@@ -43,6 +43,31 @@ export interface SearchResult {
   score: number;
 }
 
+export interface DocumentInfo {
+  id: string;
+  title: string;
+  version: string;
+  fileName: string;
+  pages: number;
+  createdAt: string;
+  _count: { chunks: number };
+}
+
+export type IngestStage = "extracting" | "chunking" | "embedding" | "saving";
+
+export interface IngestJob {
+  id: string;
+  title: string;
+  version: string;
+  fileName: string;
+  status: "running" | "done" | "error";
+  stage: IngestStage;
+  done: number;
+  total: number;
+  result?: { documentId: string; pages: number; chunks: number };
+  error?: string;
+}
+
 const TOKEN_KEY = "ara.token";
 
 export const auth = {
@@ -96,6 +121,9 @@ export const api = {
   deleteConversation: (id: string) => request(`/api/conversations/${id}`, { method: "DELETE" }),
   feedback: (messageId: string, rating: 1 | -1 | null) =>
     request(`/api/messages/${messageId}/feedback`, { method: "POST", body: JSON.stringify({ rating }) }),
+  documents: () => request<{ documents: DocumentInfo[] }>("/api/documents"),
+  job: (id: string) => request<{ job: IngestJob }>(`/api/documents/jobs/${id}`),
+  deleteDocument: (id: string) => request(`/api/documents/${id}`, { method: "DELETE" }),
   categories: () => request<{ categories: string[] }>("/api/categories"),
   search: (q: string, category?: string) => {
     const p = new URLSearchParams({ q, topK: "8", minScore: "0" });
@@ -103,6 +131,39 @@ export const api = {
     return request<{ results: SearchResult[] }>(`/api/search?${p}`);
   },
 };
+
+/** Upload com progresso de envio (XHR, porque fetch não expõe progresso de upload). */
+export function uploadManual(
+  file: File,
+  title: string,
+  version: string,
+  onUploadProgress: (fraction: number) => void,
+): Promise<IngestJob> {
+  return new Promise((resolve, reject) => {
+    const form = new FormData();
+    // Campos antes do ficheiro: o servidor só os lê se chegarem primeiro
+    form.append("title", title);
+    form.append("version", version);
+    form.append("file", file);
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", "/api/documents");
+    if (auth.token) xhr.setRequestHeader("Authorization", `Bearer ${auth.token}`);
+    xhr.upload.onprogress = (e) => e.lengthComputable && onUploadProgress(e.loaded / e.total);
+    xhr.onload = () => {
+      let data: { job?: IngestJob; error?: string } = {};
+      try {
+        data = JSON.parse(xhr.responseText);
+      } catch {
+        /* resposta não JSON */
+      }
+      if (xhr.status === 401) onUnauthorized();
+      if (xhr.status >= 200 && xhr.status < 300 && data.job) resolve(data.job);
+      else reject(new ApiError(xhr.status, data.error ?? "Erro no upload"));
+    };
+    xhr.onerror = () => reject(new ApiError(0, "Falha de ligação durante o upload"));
+    xhr.send(form);
+  });
+}
 
 export interface ChatHandlers {
   onMeta: (m: { conversationId: string; userMessageId: string; sources: Source[] }) => void;

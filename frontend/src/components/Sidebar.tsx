@@ -1,8 +1,8 @@
-import { LogOut, MessageSquareText, Plus, Search, Trash2, X } from "lucide-react";
+import { BookOpen, LogOut, MessageSquareText, Plus, Search, Trash2, X } from "lucide-react";
 import type { ConversationSummary, User } from "../lib/api";
 import { Logo } from "./Logo";
 
-export type View = "chat" | "search";
+export type View = "chat" | "search" | "manuals";
 
 interface Props {
   user: User;
@@ -60,11 +60,12 @@ export function Sidebar(p: Props) {
             <Plus className="size-4" /> Nova conversa
           </button>
 
-          <nav className="mt-4 grid grid-cols-2 gap-1 rounded-xl bg-white/5 p-1 text-xs font-medium">
+          <nav className={`mt-4 grid gap-1 rounded-xl bg-white/5 p-1 text-xs font-medium ${p.user.role === "ADMIN" ? "grid-cols-3" : "grid-cols-2"}`}>
             {(
               [
                 ["chat", MessageSquareText, "Assistente"],
                 ["search", Search, "Pesquisa"],
+                ...(p.user.role === "ADMIN" ? ([["manuals", BookOpen, "Manuais"]] as const) : []),
               ] as const
             ).map(([v, Icon, label]) => (
               <button

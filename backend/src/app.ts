@@ -2,11 +2,13 @@ import Fastify from "fastify";
 import cors from "@fastify/cors";
 import jwt from "@fastify/jwt";
 import rateLimit from "@fastify/rate-limit";
+import multipart from "@fastify/multipart";
 import { config } from "./config.js";
 import { prisma } from "./lib/db.js";
 import { authRoutes } from "./routes/auth.js";
 import { searchRoutes } from "./routes/search.js";
 import { chatRoutes } from "./routes/chat.js";
+import { documentRoutes } from "./routes/documents.js";
 
 export async function buildApp() {
   const app = Fastify({ logger: { level: process.env.LOG_LEVEL ?? "info" } });
@@ -14,6 +16,7 @@ export async function buildApp() {
   await app.register(cors, { origin: config.CORS_ORIGIN.split(",").map((s) => s.trim()) });
   await app.register(jwt, { secret: config.JWT_SECRET });
   await app.register(rateLimit, { max: 120, timeWindow: "1 minute" });
+  await app.register(multipart);
 
   app.get("/api/health", async () => {
     await prisma.$queryRaw`SELECT 1`;
@@ -23,5 +26,6 @@ export async function buildApp() {
   await app.register(authRoutes);
   await app.register(searchRoutes);
   await app.register(chatRoutes);
+  await app.register(documentRoutes);
   return app;
 }
