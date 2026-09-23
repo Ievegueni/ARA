@@ -12,16 +12,10 @@ export function EmptyState({ name, onPick }: { name: string; onPick: (q: string)
   return (
     <div className="mx-auto flex w-full max-w-3xl animate-fade-up flex-col items-center px-4 pt-[8vh] text-center">
       <div className="relative mb-6">
-        <div className="absolute inset-0 animate-pulse rounded-full bg-brand-500/20 blur-2xl" />
-        <div className="relative grid size-16 place-items-center rounded-2xl bg-gradient-to-br from-brand-400 to-brand-600 shadow-xl shadow-brand-500/30">
-          <svg viewBox="0 0 64 64" className="size-10" aria-hidden>
-            <path d="M14 38c7-17 29-17 36 0" fill="none" stroke="#fff" strokeWidth="5" strokeLinecap="round" />
-            <path d="M23 38c4-8 14-8 18 0" fill="none" stroke="#fff" strokeWidth="5" strokeLinecap="round" />
-            <circle cx="32" cy="43" r="4.5" fill="#fff" />
-          </svg>
-        </div>
+        <div className="absolute inset-0 animate-pulse rounded-full bg-brand-500/25 blur-2xl" />
+        <img src="/unitel-simbolo.png" alt="" aria-hidden className="relative size-16 drop-shadow-lg" />
       </div>
-      <h1 className="text-3xl font-semibold tracking-tight text-ink-900 sm:text-4xl">
+      <h1 className="text-3xl font-semibold tracking-tight text-navy-950 sm:text-4xl">
         Olá, {first}. <span className="text-brand-500">Qual é a avaria?</span>
       </h1>
       <p className="mt-3 max-w-xl text-ink-500">

@@ -1,7 +1,6 @@
 import { useState, type FormEvent } from "react";
-import { ArrowRight, BookOpenCheck, Loader2, Lock, ShieldCheck, User as UserIcon, Zap } from "lucide-react";
+import { ArrowRight, Loader2, Lock, User as UserIcon } from "lucide-react";
 import { api, auth, type User } from "../lib/api";
-import { Logo, LogoMark } from "./Logo";
 
 export function Login({ onLogin }: { onLogin: (u: User) => void }) {
   const [username, setUsername] = useState("");
@@ -25,61 +24,17 @@ export function Login({ onLogin }: { onLogin: (u: User) => void }) {
   }
 
   return (
-    <div className="grid min-h-full lg:grid-cols-[1.1fr_1fr]">
-      {/* Painel de marca */}
-      <aside className="relative hidden overflow-hidden bg-gradient-to-br from-brand-500 via-brand-600 to-brand-800 p-12 text-white lg:flex lg:flex-col">
-        <div className="bg-grid absolute inset-0" />
-        <svg className="absolute -right-24 -bottom-24 size-[520px] text-white/10" viewBox="0 0 200 200" fill="none" aria-hidden>
-          {[40, 70, 100, 130].map((r) => (
-            <circle key={r} cx="200" cy="200" r={r} stroke="currentColor" strokeWidth="10" />
-          ))}
-        </svg>
-        <div className="relative flex items-center gap-3">
-          <LogoMark inverse className="size-10 shadow-lg shadow-brand-900/20" />
-          <span className="text-lg font-semibold tracking-tight">Unitel</span>
-        </div>
+    <div className="relative flex min-h-full items-center justify-center overflow-hidden bg-ink-50 px-4 py-12">
+      <div className="pointer-events-none absolute -top-40 -right-40 size-[480px] rounded-full bg-brand-500/10 blur-3xl" />
+      <div className="pointer-events-none absolute -bottom-40 -left-40 size-[480px] rounded-full bg-navy-500/10 blur-3xl" />
 
-        <div className="relative my-auto max-w-lg">
-          <p className="mb-4 inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-xs font-medium backdrop-blur">
-            <span className="size-1.5 rounded-full bg-white" /> Prova de conceito
-          </p>
-          <h1 className="text-4xl leading-tight font-semibold tracking-tight xl:text-5xl">
-            O manual do técnico, <br />a uma pergunta de distância.
-          </h1>
-          <p className="mt-5 text-lg text-white/85">
-            Descreva o alarme ou o sintoma e receba o procedimento do manual, com a secção e a página de onde veio.
-          </p>
-
-          <ul className="mt-10 space-y-4">
-            {[
-              { icon: Zap, t: "Diagnóstico mais rápido", d: "Encontre o procedimento certo em segundos." },
-              { icon: BookOpenCheck, t: "Sempre rastreável", d: "Cada resposta cita a secção e a página do manual." },
-              { icon: ShieldCheck, t: "Sem invenções", d: "Se o manual não cobre o caso, o assistente diz que não sabe." },
-            ].map(({ icon: Icon, t, d }) => (
-              <li key={t} className="flex gap-4">
-                <div className="grid size-10 shrink-0 place-items-center rounded-xl bg-white/15 backdrop-blur">
-                  <Icon className="size-5" />
-                </div>
-                <div>
-                  <div className="font-semibold">{t}</div>
-                  <div className="text-sm text-white/80">{d}</div>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        <p className="relative text-xs text-white/70">© {new Date().getFullYear()} Unitel · Direção de Manutenção de Rede</p>
-      </aside>
-
-      {/* Formulário */}
-      <main className="flex items-center justify-center bg-white px-6 py-12">
-        <div className="w-full max-w-sm animate-fade-up">
-          <div className="mb-10 lg:hidden">
-            <Logo />
+      <main className="relative w-full max-w-md animate-fade-up">
+        <div className="rounded-3xl bg-white p-8 shadow-xl shadow-navy-950/5 ring-1 ring-ink-100 sm:p-10">
+          <img src="/unitel-logo.png" alt="Unitel" className="mx-auto h-12 w-auto" />
+          <div className="mt-8 text-center">
+            <h1 className="text-2xl font-semibold tracking-tight text-navy-950">Assistente de Avarias</h1>
+            <p className="mt-1.5 text-sm text-ink-500">Entre com as credenciais de técnico.</p>
           </div>
-          <h2 className="text-2xl font-semibold tracking-tight">Entrar</h2>
-          <p className="mt-1.5 text-sm text-ink-500">Use as credenciais de técnico fornecidas pela equipa do projeto.</p>
 
           <form onSubmit={submit} className="mt-8 space-y-4">
             <Field icon={UserIcon} label="Utilizador">
@@ -89,7 +44,7 @@ export function Login({ onLogin }: { onLogin: (u: User) => void }) {
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 placeholder="ex.: jsilva"
-                className="w-full bg-transparent py-3 pr-3 text-base outline-none sm:text-sm placeholder:text-ink-300"
+                className="w-full bg-transparent py-3 pr-3 text-base outline-none placeholder:text-ink-300 sm:text-sm"
                 required
               />
             </Field>
@@ -100,7 +55,7 @@ export function Login({ onLogin }: { onLogin: (u: User) => void }) {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full bg-transparent py-3 pr-3 text-base outline-none sm:text-sm placeholder:text-ink-300"
+                className="w-full bg-transparent py-3 pr-3 text-base outline-none placeholder:text-ink-300 sm:text-sm"
                 required
               />
             </Field>
@@ -121,11 +76,8 @@ export function Login({ onLogin }: { onLogin: (u: User) => void }) {
               {!loading && <ArrowRight className="size-4 transition group-hover:translate-x-0.5" />}
             </button>
           </form>
-
-          <p className="mt-10 text-center text-xs text-ink-400">
-            Acesso restrito a técnicos de manutenção de rede da Unitel.
-          </p>
         </div>
+        <p className="mt-6 text-center text-xs text-ink-400">Acesso restrito a técnicos de manutenção de rede da Unitel.</p>
       </main>
     </div>
   );

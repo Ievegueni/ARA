@@ -65,6 +65,6 @@ pm2 start deploy/ecosystem.config.cjs
 ```
 Nginx: ver `deploy/nginx.conf` (inclui `proxy_buffering off` para o streaming). As fontes são servidas localmente (sem Google Fonts), porque a rede Unitel bloqueia domínios externos.
 
-## Cores
+## Identidade visual
 
-Tokens de marca em `frontend/src/index.css` (`--color-brand-*` laranja, `--color-ink-*` grafite). Ajustar aos valores oficiais do manual de marca Unitel.
+Logótipo Unitel em `frontend/public/` (completo, versão branca e símbolo). Cores amostradas do logótipo, em `frontend/src/index.css`: laranja `#FB8100` (`--color-brand-*`) e azul-marinho `#08003C` (`--color-navy-*`).

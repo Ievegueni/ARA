@@ -18,7 +18,7 @@ export function MessageView({ m, onRated }: { m: UiMessage; onRated?: (rating: n
   if (m.role === "USER") {
     return (
       <div className="flex animate-fade-up justify-end">
-        <div className="max-w-[85%] rounded-2xl rounded-br-md bg-ink-900 px-4 py-3 text-[15px] leading-relaxed whitespace-pre-wrap text-white shadow-sm">
+        <div className="max-w-[85%] rounded-2xl rounded-br-md bg-navy-950 px-4 py-3 text-[15px] leading-relaxed whitespace-pre-wrap text-white shadow-sm">
           {m.content}
         </div>
       </div>
@@ -27,7 +27,7 @@ export function MessageView({ m, onRated }: { m: UiMessage; onRated?: (rating: n
 
   return (
     <div className="flex animate-fade-up gap-3 sm:gap-4">
-      <LogoMark className="mt-0.5 size-8 shrink-0 shadow-md shadow-brand-500/20" />
+      <LogoMark className="mt-0.5 size-8 shadow-md shadow-brand-500/20" />
       <div className="min-w-0 flex-1">
         <div className="rounded-2xl rounded-tl-md bg-white px-5 py-4 shadow-sm ring-1 ring-ink-100">
           {m.content ? (

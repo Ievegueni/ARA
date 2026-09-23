@@ -61,7 +61,7 @@ export function SearchView({ category }: { category: string }) {
           {results?.map((r, i) => (
             <li key={r.id} className="animate-fade-up rounded-2xl bg-white p-4 shadow-sm ring-1 ring-ink-100" style={{ animationDelay: `${i * 40}ms` }}>
               <div className="flex items-start gap-3">
-                <span className="grid size-7 shrink-0 place-items-center rounded-lg bg-ink-900 text-xs font-bold text-white">{i + 1}</span>
+                <span className="grid size-7 shrink-0 place-items-center rounded-lg bg-navy-950 text-xs font-bold text-white">{i + 1}</span>
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
                     <span className="font-semibold text-ink-900">{r.section}</span>

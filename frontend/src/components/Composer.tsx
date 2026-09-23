@@ -46,7 +46,7 @@ export function Composer({ busy, onSend, onStop, autoFocus }: Props) {
           className="scroll-thin max-h-[200px] flex-1 resize-none bg-transparent px-3 py-2.5 text-base outline-none sm:text-[15px] placeholder:text-ink-400"
         />
         {busy ? (
-          <button onClick={onStop} className="grid size-10 shrink-0 place-items-center rounded-xl bg-ink-900 text-white transition hover:bg-ink-700" aria-label="Parar">
+          <button onClick={onStop} className="grid size-10 shrink-0 place-items-center rounded-xl bg-navy-950 text-white transition hover:bg-navy-800" aria-label="Parar">
             <Square className="size-3.5" fill="currentColor" />
           </button>
         ) : (
