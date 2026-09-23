@@ -2,6 +2,7 @@ import { useState, type FormEvent } from "react";
 import { FileSearch, Loader2, Search } from "lucide-react";
 import { api, type SearchResult } from "../lib/api";
 import { pagesLabel, ScoreBar } from "./Sources";
+import { Excerpt } from "./Excerpt";
 
 /** Sprint 2 — pesquisa semântica direta no manual (sem LLM), para validar o retrieval. */
 export function SearchView({ category }: { category: string }) {
@@ -30,7 +31,7 @@ export function SearchView({ category }: { category: string }) {
         <div className="mb-6">
           <h1 className="text-2xl font-semibold tracking-tight">Pesquisa no manual</h1>
           <p className="mt-1 text-sm text-ink-500">
-            Encontre diretamente os excertos mais relevantes do manual, ordenados por semelhança com a pesquisa.
+            Encontre as secções do manual onde aparecem os termos pesquisados, das mais para as menos relevantes.
           </p>
         </div>
 
@@ -65,13 +66,15 @@ export function SearchView({ category }: { category: string }) {
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
                     <span className="font-semibold text-ink-900">{r.section}</span>
-                    <ScoreBar score={r.score} />
+                    <ScoreBar score={r.score} label="Correspondência com a pesquisa" />
                   </div>
                   <div className="mt-0.5 text-xs text-ink-400">
                     {r.documentTitle} v{r.documentVersion} · {pagesLabel(r.pageStart, r.pageEnd)}
                     {r.category && <> · {r.category}</>}
                   </div>
-                  <p className="mt-2.5 line-clamp-5 text-sm leading-relaxed text-ink-600">{r.text.startsWith(r.section) ? r.text.slice(r.section.length).trim() : r.text}</p>
+                  <div className="mt-2">
+                    <Excerpt text={r.display} clamp />
+                  </div>
                 </div>
               </div>
             </li>

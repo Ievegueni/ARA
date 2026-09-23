@@ -1,4 +1,5 @@
 import { Antenna, Cable, Radio, Zap } from "lucide-react";
+import type { Mode } from "../lib/api";
 
 const SUGGESTIONS = [
   { icon: Cable, cat: "Fibra óptica", q: "Tenho alarme LOS numa porta óptica. Qual é o procedimento?" },
@@ -7,7 +8,7 @@ const SUGGESTIONS = [
   { icon: Radio, cat: "Micro-ondas", q: "Ligação de micro-ondas em baixo com RSL baixo. Qual a causa provável?" },
 ];
 
-export function EmptyState({ name, onPick }: { name: string; onPick: (q: string) => void }) {
+export function EmptyState({ name, mode, onPick }: { name: string; mode: Mode; onPick: (q: string) => void }) {
   const first = name.split(/\s+/)[0];
   return (
     <div className="mx-auto flex w-full max-w-3xl animate-fade-up flex-col items-center px-4 pt-[8vh] text-center">
@@ -19,7 +20,9 @@ export function EmptyState({ name, onPick }: { name: string; onPick: (q: string)
         Olá, {first}. <span className="text-brand-500">Qual é a avaria?</span>
       </h1>
       <p className="mt-3 max-w-xl text-ink-500">
-        Descreva o equipamento, o alarme ou o sintoma. A resposta vem do manual do técnico, com a secção e a página indicadas.
+        {mode === "ia"
+          ? "Descreva o equipamento, o alarme ou o sintoma. A resposta vem do manual do técnico, com a secção e a página indicadas."
+          : "Escreva o alarme, o equipamento ou o sintoma. Mostramos as secções do manual onde aparecem, com a página."}
       </p>
 
       <div className="mt-10 grid w-full gap-3 sm:grid-cols-2">

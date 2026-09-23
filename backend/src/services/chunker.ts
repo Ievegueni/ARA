@@ -82,6 +82,8 @@ export function splitSections(pages: PageText[]): Section[] {
   return sections;
 }
 
+const LIST_ITEM_RE = /^(\d{1,2}[.)]|[a-z][.)]|[-–•●▪])\s/;
+
 /** Junta linhas em parágrafos (linha vazia = quebra de parágrafo). */
 function paragraphs(lines: Line[]): Line[] {
   const out: Line[] = [];
@@ -89,7 +91,7 @@ function paragraphs(lines: Line[]): Line[] {
   let page = lines[0]?.page ?? 1;
   let pageEnd = page;
   const flush = () => {
-    if (buf.length) out.push({ text: buf.join(" "), page, pageEnd });
+    if (buf.length) out.push({ text: buf.join(""), page, pageEnd });
     buf = [];
   };
   for (const l of lines) {
@@ -99,7 +101,9 @@ function paragraphs(lines: Line[]): Line[] {
     }
     if (!buf.length) page = l.page;
     pageEnd = l.page;
-    buf.push(l.text);
+    // Itens de lista (passos, marcadores) ficam em linha própria; o resto é quebra de linha do PDF
+    if (buf.length && LIST_ITEM_RE.test(l.text)) buf.push(`\n${l.text}`);
+    else buf.push(buf.length ? ` ${l.text}` : l.text);
   }
   flush();
   return out;

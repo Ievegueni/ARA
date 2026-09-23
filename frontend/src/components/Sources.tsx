@@ -4,10 +4,10 @@ import type { Source } from "../lib/api";
 
 export const pagesLabel = (a: number, b: number) => (a === b ? `p. ${a}` : `pp. ${a}–${b}`);
 
-export function ScoreBar({ score }: { score: number }) {
+export function ScoreBar({ score, label = "Relevância" }: { score: number; label?: string }) {
   const pct = Math.round(Math.max(0, Math.min(1, score)) * 100);
   return (
-    <span className="inline-flex items-center gap-1.5" title={`Relevância ${pct}%`}>
+    <span className="inline-flex shrink-0 items-center gap-1.5" title={`${label}: ${pct}%`}>
       <span className="h-1.5 w-12 overflow-hidden rounded-full bg-ink-100">
         <span className="block h-full rounded-full bg-brand-500" style={{ width: `${pct}%` }} />
       </span>

@@ -6,9 +6,10 @@ interface Props {
   onSend: (text: string) => void;
   onStop: () => void;
   autoFocus?: boolean;
+  placeholder?: string;
 }
 
-export function Composer({ busy, onSend, onStop, autoFocus }: Props) {
+export function Composer({ busy, onSend, onStop, autoFocus, placeholder }: Props) {
   const [text, setText] = useState("");
   const ref = useRef<HTMLTextAreaElement>(null);
 
@@ -42,7 +43,7 @@ export function Composer({ busy, onSend, onStop, autoFocus }: Props) {
               submit();
             }
           }}
-          placeholder="Descreva a avaria ou o alarme…"
+          placeholder={placeholder}
           className="scroll-thin max-h-[200px] flex-1 resize-none bg-transparent px-3 py-2.5 text-base outline-none sm:text-[15px] placeholder:text-ink-400"
         />
         {busy ? (

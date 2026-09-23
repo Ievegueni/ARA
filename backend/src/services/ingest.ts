@@ -3,6 +3,7 @@ import { basename } from "node:path";
 import { getDocument } from "pdfjs-dist/legacy/build/pdf.mjs";
 import { prisma, toVectorLiteral } from "../lib/db.js";
 import { chunkPages, type PageText } from "./chunker.js";
+import { config } from "../config.js";
 import { embed } from "./embeddings.js";
 
 interface TextItem {
@@ -74,8 +75,12 @@ export async function ingestPdfBuffer(
   const drafts = chunkPages(pages);
   if (!drafts.length) throw new Error("Nenhum texto extraído do PDF (é um PDF digitalizado? precisa de OCR)");
 
-  onProgress("embedding", 0, drafts.length);
-  const vectors = await embed(drafts.map((d) => d.text), "document", (done, total) => onProgress("embedding", done, total));
+  // Sem IA, a pesquisa usa o índice de texto (coluna gerada pelo Postgres); embeddings só com AI_ENABLED
+  let vectors: number[][] | null = null;
+  if (config.AI_ENABLED) {
+    onProgress("embedding", 0, drafts.length);
+    vectors = await embed(drafts.map((d) => d.text), "document", (done, total) => onProgress("embedding", done, total));
+  }
   onProgress("saving", 0, drafts.length);
 
   return prisma.$transaction(
@@ -98,7 +103,9 @@ export async function ingestPdfBuffer(
             tokens: d.tokens,
           },
         });
-        await tx.$executeRaw`UPDATE "Chunk" SET embedding = ${toVectorLiteral(vectors[i])}::vector WHERE id = ${chunk.id}`;
+        if (vectors) {
+          await tx.$executeRaw`UPDATE "Chunk" SET embedding = ${toVectorLiteral(vectors[i])}::vector WHERE id = ${chunk.id}`;
+        }
         if (i % 20 === 19) onProgress("saving", i + 1, drafts.length);
       }
       return { documentId: doc.id, pages: pages.length, chunks: drafts.length };

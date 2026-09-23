@@ -31,3 +31,12 @@ test("secções longas geram vários chunks", () => {
   assert.ok(chunks.length >= 2);
   assert.ok(chunks.every((c) => c.section === "5 Energia"));
 });
+
+test("itens de lista mantêm linha própria; quebras normais viram espaço", () => {
+  const text = "4 Alarmes\nProcedimento a seguir quando o alarme dispara no equipamento\nde transmissão:\n1) Confirmar o alarme\n2) Verificar o cabo\n• Nota final importante";
+  const [c] = chunkPages([{ page: 1, text }]);
+  assert.equal(
+    c.text,
+    "4 Alarmes\n\nProcedimento a seguir quando o alarme dispara no equipamento de transmissão:\n1) Confirmar o alarme\n2) Verificar o cabo\n• Nota final importante",
+  );
+});

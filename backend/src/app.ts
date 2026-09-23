@@ -20,7 +20,7 @@ export async function buildApp() {
 
   app.get("/api/health", async () => {
     await prisma.$queryRaw`SELECT 1`;
-    return { ok: true, model: config.CLAUDE_MODEL, embeddings: config.EMBEDDINGS_PROVIDER };
+    return { ok: true, mode: config.AI_ENABLED ? "ia" : "pesquisa", model: config.AI_ENABLED ? config.CLAUDE_MODEL : null };
   });
 
   await app.register(authRoutes);

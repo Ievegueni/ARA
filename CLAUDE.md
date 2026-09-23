@@ -3,6 +3,12 @@
 ## Visão Geral
 PoC de assistente de IA para apoio à resolução de avarias na manutenção de rede da Unitel. Responde a perguntas dos técnicos com base no conteúdo do manual do técnico, usando arquitetura RAG (Retrieval-Augmented Generation) — sem fine-tuning de modelo.
 
+## Fase atual: sem IA
+Por decisão do projeto, a IA fica para depois (`AI_ENABLED=false`):
+- Pesquisa por palavras-chave em português (Postgres full-text, coluna `Chunk.tsv`), sem serviços externos.
+- O chat devolve as secções do manual mais relevantes, com os termos destacados e a secção/página.
+- O código de IA (Voyage + Claude) mantém-se e liga-se com `AI_ENABLED=true` + `npm run embed:backfill`.
+
 ## Objetivo
 Reduzir tempo de diagnóstico de avarias, disponibilizando o conhecimento do manual de forma pesquisável e conversacional.
 

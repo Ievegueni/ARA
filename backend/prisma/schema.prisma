@@ -45,9 +45,12 @@ model Chunk {
   text       String
   tokens     Int
   embedding  Unsupported("vector(1024)")?
+  /// Coluna gerada pelo Postgres (full-text search em português); não escrever
+  tsv        Unsupported("tsvector")?
   createdAt  DateTime                     @default(now())
 
   @@index([documentId])
+  @@index([tsv], map: "Chunk_tsv_idx", type: Gin)
 }
 
 model User {
@@ -81,6 +84,8 @@ model Message {
   content        String
   /// Fontes citadas: [{ chunkId, section, pageStart, pageEnd, score }]
   sources        Json?
+  /// "pesquisa" (excertos do manual, sem IA) | "ia" (resposta do Claude)
+  mode           String       @default("ia")
   /// Feedback do técnico: 1 (útil) | -1 (não útil)
   rating         Int?
   createdAt      DateTime     @default(now())

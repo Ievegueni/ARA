@@ -1,8 +1,10 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { requireAuth } from "../lib/auth.js";
+import { config } from "../config.js";
 import { prisma } from "../lib/db.js";
-import { search } from "../services/retrieval.js";
+import { search, type RetrievedChunk } from "../services/retrieval.js";
+import { excerptForDisplay } from "../services/format.js";
 import { answer, NO_CONTEXT_ANSWER, type ChatTurn } from "../services/llm.js";
 
 const chatBody = z.object({
@@ -10,6 +12,21 @@ const chatBody = z.object({
   conversationId: z.string().optional(),
   category: z.string().optional(),
 });
+
+const NO_RESULTS_ANSWER =
+  "Não encontrei no manual nenhuma secção com estes termos. Experimente usar as palavras do manual: " +
+  "o nome do alarme, do equipamento ou do sintoma (ex.: “LOS”, “VSWR”, “retificador”).";
+
+/** Resposta do modo sem IA: os excertos mais relevantes, em Markdown (usado para copiar e no histórico). */
+function excerptsAnswer(chunks: RetrievedChunk[]): string {
+  if (!chunks.length) return NO_RESULTS_ANSWER;
+  const intro = chunks.length === 1 ? "Encontrei **1 secção** do manual relacionada:" : `Encontrei **${chunks.length} secções** do manual relacionadas:`;
+  const parts = chunks.map((c) => {
+    const pages = c.pageStart === c.pageEnd ? `p. ${c.pageStart}` : `pp. ${c.pageStart}–${c.pageEnd}`;
+    return `### ${c.section}\n*${c.documentTitle} v${c.documentVersion} · ${pages}*\n\n${excerptForDisplay(c)}`;
+  });
+  return [intro, ...parts].join("\n\n");
+}
 
 const feedbackBody = z.object({ rating: z.union([z.literal(1), z.literal(-1), z.null()]) });
 
@@ -93,10 +110,16 @@ export async function chatRoutes(app: FastifyInstance) {
     raw.on("close", () => abort.abort());
 
     try {
-      // Reforça a busca com a pergunta anterior quando é um seguimento curto ("e se não resolver?")
-      const lastUser = [...previous].reverse().find((m) => m.role === "USER");
-      const retrievalQuery = lastUser && question.length < 60 ? `${lastUser.content}\n${question}` : question;
-      const chunks = await search(retrievalQuery, { category });
+      const mode = config.AI_ENABLED ? "ia" : "pesquisa";
+      let chunks: RetrievedChunk[];
+      if (config.AI_ENABLED) {
+        // Reforça a busca com a pergunta anterior quando é um seguimento curto ("e se não resolver?")
+        const lastUser = [...previous].reverse().find((m) => m.role === "USER");
+        const retrievalQuery = lastUser && question.length < 60 ? `${lastUser.content}\n${question}` : question;
+        chunks = await search(retrievalQuery, { category });
+      } else {
+        chunks = await search(question, { category, topK: config.KEYWORD_ANSWER_CHUNKS });
+      }
       const sources = chunks.map((c) => ({
         chunkId: c.id,
         document: `${c.documentTitle} v${c.documentVersion}`,
@@ -104,12 +127,16 @@ export async function chatRoutes(app: FastifyInstance) {
         pageStart: c.pageStart,
         pageEnd: c.pageEnd,
         score: Number(c.score.toFixed(3)),
-        excerpt: c.text.slice(0, 600),
+        // Sem IA o excerto é a própria resposta: texto completo com os termos destacados
+        excerpt: mode === "pesquisa" ? excerptForDisplay(c) : c.text.slice(0, 600),
       }));
-      send("meta", { conversationId: conversation.id, userMessageId: userMessage.id, sources });
+      send("meta", { conversationId: conversation.id, userMessageId: userMessage.id, sources, mode });
 
       let text: string;
-      if (!chunks.length) {
+      if (!config.AI_ENABLED) {
+        text = excerptsAnswer(chunks);
+        send("delta", { text });
+      } else if (!chunks.length) {
         text = NO_CONTEXT_ANSWER;
         send("delta", { text });
       } else {
@@ -121,7 +148,7 @@ export async function chatRoutes(app: FastifyInstance) {
       }
 
       const saved = await prisma.message.create({
-        data: { conversationId: conversation.id, role: "ASSISTANT", content: text, sources },
+        data: { conversationId: conversation.id, role: "ASSISTANT", content: text, sources, mode },
       });
       await prisma.conversation.update({ where: { id: conversation.id }, data: { updatedAt: new Date() } });
       send("done", { messageId: saved.id });

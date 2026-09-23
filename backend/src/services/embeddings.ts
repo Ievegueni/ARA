@@ -1,12 +1,12 @@
-import { createHash } from "node:crypto";
 import { config, EMBEDDING_DIM } from "../config.js";
 
 export type EmbedInput = "document" | "query";
 
+const VOYAGE_BATCH = 64;
+
 /**
- * Gera embeddings. Claude não tem endpoint de embeddings; a Anthropic
- * recomenda a Voyage AI. O provider "local" é apenas para desenvolvimento
- * (hashing de n-gramas, sem compreensão semântica real).
+ * Gera embeddings com a Voyage AI (só usado com AI_ENABLED=true).
+ * A API do Claude não tem endpoint de embeddings; a Anthropic recomenda a Voyage.
  */
 export async function embed(
   texts: string[],
@@ -14,19 +14,6 @@ export async function embed(
   onProgress?: (done: number, total: number) => void,
 ): Promise<number[][]> {
   if (texts.length === 0) return [];
-  if (config.EMBEDDINGS_PROVIDER === "voyage") return embedVoyage(texts, inputType, onProgress);
-  const out = texts.map(localEmbedding);
-  onProgress?.(texts.length, texts.length);
-  return out;
-}
-
-const VOYAGE_BATCH = 64;
-
-async function embedVoyage(
-  texts: string[],
-  inputType: EmbedInput,
-  onProgress?: (done: number, total: number) => void,
-): Promise<number[][]> {
   if (!config.VOYAGE_API_KEY) throw new Error("VOYAGE_API_KEY não definida");
   const out: number[][] = [];
   for (let i = 0; i < texts.length; i += VOYAGE_BATCH) {
@@ -50,26 +37,4 @@ async function embedVoyage(
     onProgress?.(out.length, texts.length);
   }
   return out;
-}
-
-/** Embedding determinístico por hashing de palavras e trigramas (só dev). */
-export function localEmbedding(text: string): number[] {
-  const v = new Array<number>(EMBEDDING_DIM).fill(0);
-  const norm = text
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .replace(/[^a-z0-9\s]/g, " ");
-  const add = (feat: string, w: number) => {
-    const h = createHash("md5").update(feat).digest();
-    const idx = h.readUInt32LE(0) % EMBEDDING_DIM;
-    v[idx] += h[4] & 1 ? w : -w;
-  };
-  for (const word of norm.split(/\s+/).filter((w) => w.length > 2)) {
-    add(`w:${word}`, 1);
-    const p = ` ${word} `;
-    for (let i = 0; i < p.length - 2; i++) add(`t:${p.slice(i, i + 3)}`, 0.3);
-  }
-  const mag = Math.hypot(...v) || 1;
-  return v.map((x) => x / mag);
 }

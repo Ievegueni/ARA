@@ -16,7 +16,8 @@
     "db:generate": "prisma generate",
     "ingest": "tsx src/scripts/ingest.ts",
     "search": "tsx src/scripts/search.ts",
-    "user:create": "tsx src/scripts/create-user.ts"
+    "user:create": "tsx src/scripts/create-user.ts",
+    "embed:backfill": "tsx src/scripts/embed-backfill.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.128.0",

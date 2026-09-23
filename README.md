@@ -1,6 +1,16 @@
 # ARA — Assistente de Avarias (Unitel)
 
-PoC de assistente RAG para apoio à resolução de avarias na manutenção de rede. Responde com base no manual do técnico e cita sempre a secção/página.
+PoC de assistente para apoio à resolução de avarias na manutenção de rede, com base no manual do técnico. Mostra sempre a secção e a página.
+
+## Modos
+
+| | `AI_ENABLED=false` (atual) | `AI_ENABLED=true` |
+|---|---|---|
+| Pesquisa | Palavras-chave em português (Postgres full-text: sem acentos, radicais) | Semântica (Voyage + pgvector) |
+| Resposta | Secções do manual mais relevantes, com os termos destacados | Texto escrito pelo Claude, com citações |
+| Serviços externos | Nenhum | Anthropic + Voyage |
+
+Para ativar a IA mais tarde: preencher as chaves em `backend/.env`, `AI_ENABLED=true`, reiniciar e correr `npm run embed:backfill` (gera os embeddings dos manuais já carregados).
 
 ![Conversa](docs/screenshots/3-conversa.png)
 
@@ -9,9 +19,9 @@ PoC de assistente RAG para apoio à resolução de avarias na manutenção de re
 ```
 backend/    Fastify + Prisma + pgvector + Claude API
   src/services/chunker.ts     PDF → chunks por secção (Sprint 1)
-  src/services/embeddings.ts  Voyage AI (produção) | local (dev)
-  src/services/retrieval.ts   busca semântica top-N (Sprint 2)
-  src/services/llm.ts         system prompt + Claude em streaming (Sprint 3)
+  src/services/retrieval.ts   pesquisa: palavras-chave (sem IA) | semântica (com IA)
+  src/services/embeddings.ts  Voyage AI (só com IA)
+  src/services/llm.ts         system prompt + Claude em streaming (só com IA)
   src/routes/                 auth, search, chat (SSE), conversas, feedback
 frontend/   React 18 + Vite + Tailwind v4 (Sprint 4)
 deploy/     PM2 + Nginx para o VPS
@@ -24,7 +34,7 @@ Requisitos: Node 20+, Postgres 16 com `pgvector` (ou `docker compose up -d`).
 ```bash
 # Backend
 cd backend
-cp .env.example .env          # preencher ANTHROPIC_API_KEY, VOYAGE_API_KEY, JWT_SECRET
+cp .env.example .env          # definir JWT_SECRET (as chaves de IA só são precisas com AI_ENABLED=true)
 npm install
 npm run db:migrate
 npm run user:create -- jsilva 'PalavraPasse123' "João Silva" --section "Rede Luanda"
@@ -37,7 +47,7 @@ npm install
 npm run dev                   # http://localhost:5173 (proxy /api → :3000)
 ```
 
-Sem chaves de API: `EMBEDDINGS_PROVIDER=local` e `RETRIEVAL_MIN_SCORE=0.15` permitem testar ingestão e pesquisa (qualidade semântica fraca). Há um PDF fictício em `backend/fixtures/manual-exemplo.pdf`.
+Há um PDF fictício para testes em `backend/fixtures/manual-exemplo.pdf`.
 
 ## Carregar manuais
 
@@ -49,7 +59,7 @@ Sem chaves de API: `EMBEDDINGS_PROVIDER=local` e `RETRIEVAL_MIN_SCORE=0.15` perm
 
 **Pela linha de comandos (no servidor):** `npm run ingest -- manual.pdf --title "Manual do Técnico" --version 1.0`
 
-## Validar o retrieval (Sprint 2)
+## Testar a pesquisa
 
 ```bash
 npm run search -- "alarme VSWR elevado" 5
@@ -61,8 +71,9 @@ Ou no separador **Pesquisa** da interface.
 | Método | Rota | Descrição |
 |---|---|---|
 | POST | `/api/auth/login` | `{username, password}` → `{token, user}` |
-| GET | `/api/search?q=&topK=&category=` | busca semântica (sem LLM) |
-| POST | `/api/chat` | `{question, conversationId?, category?}` → SSE (`meta`, `delta`, `done`, `error`) |
+| GET | `/api/health` | `{mode: "pesquisa" \| "ia"}` |
+| GET | `/api/search?q=&topK=&category=` | pesquisa direta no manual |
+| POST | `/api/chat` | `{question, conversationId?, category?}` → SSE (`meta`, `delta`, `done`, `error`); sem IA devolve os excertos |
 | GET/DELETE | `/api/conversations[/:id]` | histórico do técnico |
 | GET | `/api/documents` | manuais carregados |
 | POST | `/api/documents` | (admin) multipart `title`, `version`, `file` → `202 {job}` |

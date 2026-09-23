@@ -1,12 +1,13 @@
 import { useEffect, useRef } from "react";
 import { ShieldAlert } from "lucide-react";
-import type { User } from "../lib/api";
+import type { Mode, User } from "../lib/api";
 import { Composer } from "./Composer";
 import { EmptyState } from "./EmptyState";
 import { MessageView, type UiMessage } from "./MessageView";
 
 interface Props {
   user: User;
+  mode: Mode;
   messages: UiMessage[];
   busy: boolean;
   loading: boolean;
@@ -14,7 +15,7 @@ interface Props {
   onStop: () => void;
 }
 
-export function ChatView({ user, messages, busy, loading, onSend, onStop }: Props) {
+export function ChatView({ user, mode, messages, busy, loading, onSend, onStop }: Props) {
   const endRef = useRef<HTMLDivElement>(null);
   const last = messages[messages.length - 1];
 
@@ -35,7 +36,7 @@ export function ChatView({ user, messages, busy, loading, onSend, onStop }: Prop
             ))}
           </div>
         ) : messages.length === 0 ? (
-          <EmptyState name={user.name} onPick={onSend} />
+          <EmptyState name={user.name} mode={mode} onPick={onSend} />
         ) : (
           <div className="mx-auto max-w-3xl space-y-6 px-4 py-8">
             {messages.map((m) => (
@@ -48,10 +49,10 @@ export function ChatView({ user, messages, busy, loading, onSend, onStop }: Prop
 
       <div className="bg-gradient-to-t from-ink-50 via-ink-50 to-ink-50/0 px-3 pt-2 pb-[max(1rem,env(safe-area-inset-bottom))] sm:px-4">
         <div className="mx-auto max-w-3xl">
-          <Composer busy={busy} onSend={onSend} onStop={onStop} autoFocus />
+          <Composer busy={busy} onSend={onSend} onStop={onStop} autoFocus placeholder={mode === "ia" ? "Descreva a avaria ou o alarme…" : "Alarme, equipamento ou sintoma…"} />
           <p className="mt-2 text-center text-[11px] leading-snug text-ink-400">
             <ShieldAlert className="mr-1 inline size-3 -translate-y-px" />
-            Baseado apenas no manual do técnico. Confirme sempre procedimentos críticos e normas de segurança.
+            {mode === "ia" ? "Baseado apenas no manual do técnico." : "Excertos do manual do técnico."} Confirme sempre procedimentos críticos e normas de segurança.
           </p>
         </div>
       </div>

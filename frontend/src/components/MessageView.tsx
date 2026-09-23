@@ -2,9 +2,10 @@ import { useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { AlertTriangle, Check, Copy, ThumbsDown, ThumbsUp } from "lucide-react";
-import { api, type Message } from "../lib/api";
+import { api, type Message, type Source } from "../lib/api";
+import { Excerpt } from "./Excerpt";
 import { LogoMark } from "./Logo";
-import { Sources } from "./Sources";
+import { pagesLabel, ScoreBar, Sources } from "./Sources";
 
 /** Transforma citações "[Secção 2.1, p. 2]" em links especiais renderizados como etiquetas. */
 const withCitations = (md: string) => md.replace(/\[((?:Sec[çc][ãa]o|Sec\.)[^\]\n]{1,80})\](?!\()/gi, "[$1](#cite)");
@@ -30,7 +31,9 @@ export function MessageView({ m, onRated }: { m: UiMessage; onRated?: (rating: n
       <LogoMark className="mt-0.5 size-8 shadow-md shadow-brand-500/20" />
       <div className="min-w-0 flex-1">
         <div className="rounded-2xl rounded-tl-md bg-white px-5 py-4 shadow-sm ring-1 ring-ink-100">
-          {m.content ? (
+          {m.mode === "pesquisa" && m.sources?.length ? (
+            <ExcerptAnswer sources={m.sources} />
+          ) : m.content ? (
             <div className="prose prose-sm max-w-none text-[15px] prose-headings:font-semibold prose-headings:text-ink-900 prose-p:leading-relaxed prose-strong:text-ink-900 prose-ol:pl-5 prose-li:marker:font-semibold prose-li:marker:text-brand-600">
               <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
@@ -58,7 +61,7 @@ export function MessageView({ m, onRated }: { m: UiMessage; onRated?: (rating: n
               {m.streaming && <span className="ml-0.5 inline-block h-4 w-2 translate-y-0.5 animate-blink bg-brand-500" />}
             </div>
           ) : m.streaming ? (
-            <Thinking />
+            <Thinking label={m.mode === "ia" ? "A consultar o manual…" : "A pesquisar no manual…"} />
           ) : null}
 
           {m.error && (
@@ -67,7 +70,7 @@ export function MessageView({ m, onRated }: { m: UiMessage; onRated?: (rating: n
             </div>
           )}
 
-          {m.sources && !m.streaming && <Sources sources={m.sources} />}
+          {m.sources && !m.streaming && m.mode !== "pesquisa" && <Sources sources={m.sources} />}
         </div>
         {!m.streaming && !m.error && m.id && !m.id.startsWith("tmp-") && <Actions m={m} onRated={onRated} />}
       </div>
@@ -75,7 +78,37 @@ export function MessageView({ m, onRated }: { m: UiMessage; onRated?: (rating: n
   );
 }
 
-function Thinking() {
+/** Resposta do modo sem IA: as secções do manual encontradas, com os termos destacados. */
+function ExcerptAnswer({ sources }: { sources: Source[] }) {
+  return (
+    <div>
+      <p className="text-[15px] text-ink-700">
+        Encontrei <strong className="text-ink-900">{sources.length === 1 ? "1 secção" : `${sources.length} secções`}</strong> do manual{" "}
+        {sources.length === 1 ? "relacionada" : "relacionadas"} com a pesquisa:
+      </p>
+      <ol className="mt-4 space-y-3">
+        {sources.map((s, i) => (
+          <li key={s.chunkId} className="rounded-xl border border-ink-100 bg-ink-50/40 p-4">
+            <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-1.5">
+              <div className="min-w-0">
+                <h3 className="font-semibold text-navy-950">{s.section}</h3>
+                <div className="mt-0.5 text-xs text-ink-400">
+                  {s.document} · {pagesLabel(s.pageStart, s.pageEnd)}
+                </div>
+              </div>
+              <ScoreBar score={s.score} label="Termos da pesquisa encontrados nesta secção" />
+            </div>
+            <div className="mt-3 border-t border-ink-100 pt-2">
+              <Excerpt text={s.excerpt} clamp={i > 0} />
+            </div>
+          </li>
+        ))}
+      </ol>
+    </div>
+  );
+}
+
+function Thinking({ label }: { label: string }) {
   return (
     <div className="flex items-center gap-3 py-1 text-sm text-ink-500">
       <span className="flex gap-1">
@@ -83,7 +116,7 @@ function Thinking() {
           <span key={d} className="size-2 animate-bounce rounded-full bg-brand-500" style={{ animationDelay: `${d}ms` }} />
         ))}
       </span>
-      A consultar o manual…
+      {label}
     </div>
   );
 }

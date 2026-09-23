@@ -22,8 +22,12 @@ export interface Message {
   content: string;
   sources?: Source[] | null;
   rating?: number | null;
+  /** "pesquisa" = excertos do manual (sem IA) | "ia" = resposta do Claude */
+  mode?: Mode;
   createdAt?: string;
 }
+
+export type Mode = "ia" | "pesquisa";
 
 export interface ConversationSummary {
   id: string;
@@ -40,6 +44,8 @@ export interface SearchResult {
   pageStart: number;
   pageEnd: number;
   text: string;
+  /** Texto pronto a mostrar (Markdown, termos encontrados a negrito). */
+  display: string;
   score: number;
 }
 
@@ -114,6 +120,7 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ username, password }),
     }),
+  health: () => request<{ ok: boolean; mode: Mode; model: string | null }>("/api/health"),
   me: () => request<{ user: User }>("/api/auth/me"),
   conversations: () => request<{ conversations: ConversationSummary[] }>("/api/conversations"),
   conversation: (id: string) =>
@@ -166,7 +173,7 @@ export function uploadManual(
 }
 
 export interface ChatHandlers {
-  onMeta: (m: { conversationId: string; userMessageId: string; sources: Source[] }) => void;
+  onMeta: (m: { conversationId: string; userMessageId: string; sources: Source[]; mode: Mode }) => void;
   onDelta: (text: string) => void;
   onDone: (m: { messageId: string }) => void;
   onError: (error: string) => void;

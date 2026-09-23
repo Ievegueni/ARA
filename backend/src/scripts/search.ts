@@ -1,4 +1,4 @@
-/** Teste manual do retrieval (Sprint 2). Uso: npm run search -- "pergunta" [topK] */
+/** Teste manual da pesquisa. Uso: npm run search -- "pergunta" [topK] */
 import { search } from "../services/retrieval.js";
 import { prisma } from "../lib/db.js";
 
@@ -8,8 +8,10 @@ if (!q) {
   process.exit(1);
 }
 const results = await search(q, { topK: Number(k ?? 5), minScore: 0 });
+if (!results.length) console.log("Sem resultados.");
 for (const [i, r] of results.entries()) {
-  console.log(`\n#${i + 1}  score=${r.score.toFixed(3)}  [${r.section}, p. ${r.pageStart}${r.pageEnd !== r.pageStart ? `-${r.pageEnd}` : ""}]`);
-  console.log(r.text.slice(0, 300).replace(/\n+/g, " ") + (r.text.length > 300 ? "…" : ""));
+  console.log(`\n#${i + 1}  score=${r.score.toFixed(2)}  [${r.section}, p. ${r.pageStart}${r.pageEnd !== r.pageStart ? `-${r.pageEnd}` : ""}]`);
+  const t = (r.highlighted ?? r.text).replace(/\n+/g, " ");
+  console.log(t.slice(0, 220) + (t.length > 220 ? "…" : ""));
 }
 await prisma.$disconnect();

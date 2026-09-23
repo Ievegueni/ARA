@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Loader2, Menu } from "lucide-react";
-import { api, auth, setUnauthorizedHandler, streamChat, type ConversationSummary, type User } from "./lib/api";
+import { api, auth, setUnauthorizedHandler, streamChat, type ConversationSummary, type Mode, type User } from "./lib/api";
 import { Login } from "./components/Login";
 import { Sidebar, type View } from "./components/Sidebar";
 import { ChatView } from "./components/ChatView";
@@ -48,6 +48,7 @@ function Shell({ user, onLogout }: { user: User; onLogout: () => void }) {
   const [busy, setBusy] = useState(false);
   const [categories, setCategories] = useState<string[]>([]);
   const [category, setCategory] = useState("");
+  const [mode, setMode] = useState<Mode>("pesquisa");
   const abortRef = useRef<AbortController | null>(null);
 
   const refreshConversations = useCallback(() => {
@@ -61,6 +62,7 @@ function Shell({ user, onLogout }: { user: User; onLogout: () => void }) {
   useEffect(() => {
     refreshConversations();
     refreshCategories();
+    api.health().then((h) => setMode(h.mode)).catch(() => {});
   }, [refreshConversations, refreshCategories]);
 
   function newConversation() {
@@ -104,7 +106,7 @@ function Shell({ user, onLogout }: { user: User; onLogout: () => void }) {
     setMessages((m) => [
       ...m,
       { id: tmpUser, role: "USER", content: question },
-      { id: tmpBot, role: "ASSISTANT", content: "", streaming: true },
+      { id: tmpBot, role: "ASSISTANT", content: "", streaming: true, mode },
     ]);
     let botId = tmpBot;
     const patchBot = (fn: (m: UiMessage) => UiMessage) =>
@@ -114,10 +116,10 @@ function Shell({ user, onLogout }: { user: User; onLogout: () => void }) {
       await streamChat(
         { question, conversationId: activeId ?? undefined, category: category || undefined },
         {
-          onMeta: ({ conversationId, userMessageId, sources }) => {
+          onMeta: ({ conversationId, userMessageId, sources, mode }) => {
             setActiveId(conversationId);
             setMessages((all) => all.map((m) => (m.id === tmpUser ? { ...m, id: userMessageId } : m)));
-            patchBot((m) => ({ ...m, sources }));
+            patchBot((m) => ({ ...m, sources, mode }));
             refreshConversations();
           },
           onDelta: (t) => patchBot((m) => ({ ...m, content: m.content + t })),
@@ -172,6 +174,7 @@ function Shell({ user, onLogout }: { user: User; onLogout: () => void }) {
         {view === "chat" ? (
           <ChatView
             user={user}
+            mode={mode}
             messages={messages}
             busy={busy}
             loading={loadingConv}
