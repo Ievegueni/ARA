@@ -4,24 +4,39 @@
 # Este ficheiro documenta o que tem de estar instalado no VPS antes do deploy.
 # As dependências da aplicação (Node) ficam em backend/package.json e
 # frontend/package.json, instaladas com `npm ci`.
+#
+# ATENÇÃO — VPS PARTILHADO: se este servidor já tem outros projetos a
+# correr, NÃO instalar/atualizar nada abaixo de forma global sem antes
+# confirmar que não entra em conflito com o que já existe (versão de
+# Node, nomes na base de dados, porta do backend, processos PM2, sites
+# do Nginx). Ver deploy/DEPLOY.md, secção "VPS partilhado — ler antes
+# de começar" e o levantamento do passo 1, antes de instalar seja o
+# que for desta lista.
 
 # --- Sistema operativo ---
 # Ubuntu 22.04 LTS ou 24.04 LTS (recomendado) / Debian 12
 # Acesso root ou sudo
 
 # --- Runtime ---
-node >= 20.19          # Node.js LTS (usar nvm ou NodeSource; ver DEPLOY.md passo 2)
+node >= 20.19          # se já houver Node 20+ partilhado por outros projetos, usar esse;
+                        # caso contrário, instalar via nvm (por utilizador), não via APT/NodeSource
+                        # global — evita mudar a versão que outros projetos usam (ver DEPLOY.md passo 2)
 npm >= 10               # incluído com o Node
 
 # --- Base de dados ---
-postgresql >= 16
+postgresql >= 16        # se o VPS já tiver Postgres noutra versão, confirmar compatibilidade do
+                         # pgvector antes de decidir atualizar um servidor partilhado
 postgresql-16-pgvector  # extensão pgvector (pacote no APT do PostgreSQL)
-# Extensões ativadas pela migração (não instalar à parte): vector, unaccent
+# Extensões ativadas pela migração da aplicação (não instalar à parte): vector, unaccent
+# Nome de utilizador/base de dados ("ara") tem de estar livre — confirmar com `psql -c "\du"` / `\l`
 
 # --- Processo e proxy ---
-pm2                      # gestor de processos Node (npm install -g pm2)
-nginx                    # proxy reverso + servidor de ficheiros estáticos do frontend
-certbot                  # certificado HTTPS (Let's Encrypt) — opcional mas recomendado
+pm2                      # gestor de processos Node — normalmente já instalado se há outros
+                          # projetos Node no VPS; instalar só se `pm2 -v` falhar
+nginx                    # proxy reverso + servidor de ficheiros estáticos do frontend —
+                          # normalmente já instalado; acrescentar um site novo, nunca reinstalar
+certbot                  # certificado HTTPS (Let's Encrypt) — normalmente já instalado se
+                          # outro site já usa HTTPS
 python3-certbot-nginx    # plugin do certbot para o Nginx
 
 # --- Ferramentas de linha de comandos ---
