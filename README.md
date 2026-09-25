@@ -83,6 +83,8 @@ Ou no separador **Pesquisa** da interface.
 
 ## Deploy (VPS, fora da rede Unitel)
 
+Guia completo, passo a passo, em `deploy/DEPLOY.md`. Requisitos do servidor em `deploy/requirements.txt`. Resumo:
+
 ```bash
 cd backend && npm ci && npm run build && npm run db:migrate
 cd ../frontend && npm ci && npm run build   # copiar dist/ para /var/www/ara/frontend/dist

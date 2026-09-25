@@ -1,0 +1,29 @@
+# Requisitos do servidor (VPS) — Assistente de Avarias (Unitel)
+#
+# Este projeto é Node.js, não Python — não há pacotes pip a instalar.
+# Este ficheiro documenta o que tem de estar instalado no VPS antes do deploy.
+# As dependências da aplicação (Node) ficam em backend/package.json e
+# frontend/package.json, instaladas com `npm ci`.
+
+# --- Sistema operativo ---
+# Ubuntu 22.04 LTS ou 24.04 LTS (recomendado) / Debian 12
+# Acesso root ou sudo
+
+# --- Runtime ---
+node >= 20.19          # Node.js LTS (usar nvm ou NodeSource; ver DEPLOY.md passo 2)
+npm >= 10               # incluído com o Node
+
+# --- Base de dados ---
+postgresql >= 16
+postgresql-16-pgvector  # extensão pgvector (pacote no APT do PostgreSQL)
+# Extensões ativadas pela migração (não instalar à parte): vector, unaccent
+
+# --- Processo e proxy ---
+pm2                      # gestor de processos Node (npm install -g pm2)
+nginx                    # proxy reverso + servidor de ficheiros estáticos do frontend
+certbot                  # certificado HTTPS (Let's Encrypt) — opcional mas recomendado
+python3-certbot-nginx    # plugin do certbot para o Nginx
+
+# --- Ferramentas de linha de comandos ---
+git
+curl
