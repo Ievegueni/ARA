@@ -7,6 +7,7 @@ import { ChatView } from "./components/ChatView";
 import { SearchView } from "./components/SearchView";
 import { LibraryView } from "./components/LibraryView";
 import { CategorySelect } from "./components/CategorySelect";
+import { AiToggle } from "./components/AiToggle";
 import type { UiMessage } from "./components/MessageView";
 
 export default function App() {
@@ -49,6 +50,7 @@ function Shell({ user, onLogout }: { user: User; onLogout: () => void }) {
   const [categories, setCategories] = useState<string[]>([]);
   const [category, setCategory] = useState("");
   const [mode, setMode] = useState<Mode>("pesquisa");
+  const onAiChange = useCallback((active: boolean) => setMode(active ? "ia" : "pesquisa"), []);
   const abortRef = useRef<AbortController | null>(null);
 
   const refreshConversations = useCallback(() => {
@@ -120,9 +122,11 @@ function Shell({ user, onLogout }: { user: User; onLogout: () => void }) {
             setActiveId(conversationId);
             setMessages((all) => all.map((m) => (m.id === tmpUser ? { ...m, id: userMessageId } : m)));
             patchBot((m) => ({ ...m, sources, videos, mode }));
+            setMode(mode); // o administrador pode ter ligado/desligado a IA entretanto
             refreshConversations();
           },
           onDelta: (t) => patchBot((m) => ({ ...m, content: m.content + t })),
+          onFallback: ({ text, sources, mode, notice }) => patchBot((m) => ({ ...m, content: text, sources, mode, notice })),
           onDone: ({ messageId }) => {
             patchBot((m) => ({ ...m, id: messageId, streaming: false }));
             botId = messageId;
@@ -163,12 +167,13 @@ function Shell({ user, onLogout }: { user: User; onLogout: () => void }) {
       />
 
       <main className="flex min-w-0 flex-1 flex-col">
-        <header className="flex h-14 shrink-0 items-center gap-3 border-b border-ink-100 bg-white/80 px-4 backdrop-blur">
+        <header className="relative z-20 flex h-14 shrink-0 items-center gap-2 border-b border-ink-100 bg-white/80 px-4 backdrop-blur sm:gap-3">
           <button onClick={() => setSidebarOpen(true)} className="-ml-1 rounded-lg p-1.5 text-ink-600 hover:bg-ink-100 lg:hidden" aria-label="Abrir menu">
             <Menu className="size-5" />
           </button>
           <h2 className="min-w-0 flex-1 truncate text-sm font-semibold text-ink-800">{title}</h2>
           {view !== "manuals" && <CategorySelect categories={categories} value={category} onChange={setCategory} />}
+          {user.role === "ADMIN" && <AiToggle onChange={onAiChange} />}
         </header>
 
         {view === "chat" ? (

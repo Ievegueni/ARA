@@ -6,6 +6,7 @@ import { prisma, toVectorLiteral } from "../lib/db.js";
 import { chunkPages, type PageText } from "./chunker.js";
 import { config } from "../config.js";
 import { embed } from "./embeddings.js";
+import { shouldEmbed } from "./ai.js";
 
 interface TextItem {
   str: string;
@@ -78,9 +79,10 @@ export async function ingestPdfBuffer(
   const drafts = chunkPages(pages);
   if (!drafts.length) throw new Error("Nenhum texto extraído do PDF (é um PDF digitalizado? precisa de OCR)");
 
-  // Sem IA, a pesquisa usa o índice de texto (coluna gerada pelo Postgres); embeddings só com AI_ENABLED
+  // A pesquisa por palavras-chave usa o índice de texto (coluna gerada pelo Postgres).
+  // Embeddings só com a IA ativa e chave Voyage: com a IA desligada nada sai do servidor.
   let vectors: number[][] | null = null;
-  if (config.AI_ENABLED) {
+  if (shouldEmbed()) {
     onProgress("embedding", 0, drafts.length);
     vectors = await embed(drafts.map((d) => d.text), "document", (done, total) => onProgress("embedding", done, total));
   }

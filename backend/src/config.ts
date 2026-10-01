@@ -11,7 +11,10 @@ const schema = z
     CORS_ORIGIN: z.string().default("http://localhost:5173"),
     JWT_SECRET: z.string().min(32, "JWT_SECRET deve ter pelo menos 32 caracteres"),
 
-    /** false = pesquisa por palavras-chave, sem serviços externos. true = pesquisa semântica (Voyage) + resposta do Claude. */
+    /**
+     * Estado inicial da IA, usado só até o administrador usar o interruptor na interface
+     * (a partir daí vale o valor guardado na base de dados). Ver services/ai.ts.
+     */
     AI_ENABLED: bool,
     ANTHROPIC_API_KEY: z.string().optional(),
     CLAUDE_MODEL: z.string().default("claude-sonnet-5"),
@@ -35,11 +38,8 @@ const schema = z
     /** Vídeos sugeridos por resposta no chat. */
     VIDEO_ANSWER_COUNT: z.coerce.number().int().min(0).max(10).default(2),
   })
-  .superRefine((c, ctx) => {
-    if (!c.AI_ENABLED) return;
-    if (!c.ANTHROPIC_API_KEY) ctx.addIssue({ code: "custom", path: ["ANTHROPIC_API_KEY"], message: "obrigatória com AI_ENABLED=true" });
-    if (!c.VOYAGE_API_KEY) ctx.addIssue({ code: "custom", path: ["VOYAGE_API_KEY"], message: "obrigatória com AI_ENABLED=true" });
-  });
+  // Chaves vazias contam como ausentes ("ANTHROPIC_API_KEY=" no .env)
+  .transform((c) => ({ ...c, ANTHROPIC_API_KEY: c.ANTHROPIC_API_KEY || undefined, VOYAGE_API_KEY: c.VOYAGE_API_KEY || undefined }));
 
 export const config = schema.parse(process.env);
 

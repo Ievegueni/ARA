@@ -10,6 +10,8 @@ import { searchRoutes } from "./routes/search.js";
 import { chatRoutes } from "./routes/chat.js";
 import { documentRoutes } from "./routes/documents.js";
 import { videoRoutes } from "./routes/videos.js";
+import { settingsRoutes } from "./routes/settings.js";
+import { isAiActive, loadAiSetting } from "./services/ai.js";
 
 export async function buildApp() {
   const app = Fastify({ logger: { level: process.env.LOG_LEVEL ?? "info" } });
@@ -21,7 +23,8 @@ export async function buildApp() {
 
   app.get("/api/health", async () => {
     await prisma.$queryRaw`SELECT 1`;
-    return { ok: true, mode: config.AI_ENABLED ? "ia" : "pesquisa", model: config.AI_ENABLED ? config.CLAUDE_MODEL : null };
+    const ai = isAiActive();
+    return { ok: true, mode: ai ? "ia" : "pesquisa", model: ai ? config.CLAUDE_MODEL : null };
   });
 
   await app.register(authRoutes);
@@ -29,5 +32,7 @@ export async function buildApp() {
   await app.register(chatRoutes);
   await app.register(documentRoutes);
   await app.register(videoRoutes);
+  await app.register(settingsRoutes);
+  await loadAiSetting();
   return app;
 }

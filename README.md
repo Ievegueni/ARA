@@ -4,13 +4,20 @@ PoC de assistente para apoio à resolução de avarias na manutenção de rede, 
 
 ## Modos
 
-| | `AI_ENABLED=false` (atual) | `AI_ENABLED=true` |
-|---|---|---|
-| Pesquisa | Palavras-chave em português (Postgres full-text: sem acentos, radicais) | Semântica (Voyage + pgvector) |
-| Resposta | Secções do manual mais relevantes, com os termos destacados | Texto escrito pelo Claude, com citações |
-| Serviços externos | Nenhum | Anthropic + Voyage |
+| | IA desligada (atual) | IA ligada, só chave Claude | IA ligada, chaves Claude + Voyage |
+|---|---|---|---|
+| Pesquisa | Palavras-chave em português (sem acentos, radicais) | Palavras-chave | Por significado (Voyage + pgvector) |
+| Resposta | Secções do manual, com os termos destacados | Texto escrito pelo Claude, com citações | Texto escrito pelo Claude, com citações |
+| Serviços externos | Nenhum | Anthropic | Anthropic + Voyage |
 
-Para ativar a IA mais tarde: preencher as chaves em `backend/.env`, `AI_ENABLED=true`, reiniciar e correr `npm run embed:backfill` (gera os embeddings dos manuais já carregados).
+**Ligar/desligar a IA:** administrador → botão **IA** no cabeçalho → interruptor. Aplica-se logo a todos, sem reiniciar, e fica guardado.
+
+1. Pôr a chave no servidor, em `backend/.env`: `ANTHROPIC_API_KEY=sk-ant-…` (e opcionalmente `VOYAGE_API_KEY=…`) → `pm2 restart ara-api`.
+2. Na aplicação: botão **IA** → **Testar ligação** → ligar o interruptor.
+
+- As chaves nunca saem do servidor (o painel só mostra se existem).
+- Se o Claude falhar (chave inválida, sem crédito, sem rede), o técnico recebe os excertos do manual com um aviso, em vez de um erro.
+- Com a chave Voyage, ao ligar a IA os embeddings dos manuais já carregados são gerados em segundo plano (progresso no painel); até terminarem, a pesquisa continua por palavras-chave.
 
 ![Conversa](docs/screenshots/3-conversa.png)
 
@@ -96,6 +103,8 @@ Ou no separador **Pesquisa** da interface.
 | POST | `/api/documents` | (admin) multipart `title`, `version`, `file` → `202 {job}` |
 | GET | `/api/documents/jobs/:id` | (admin) progresso da ingestão |
 | DELETE | `/api/documents/:id` | (admin) apaga o manual e as secções |
+| GET / PUT | `/api/settings/ai` | (admin) estado da IA / ligar-desligar `{enabled}` |
+| POST | `/api/settings/ai/test` | (admin) testar as chaves (Claude sem custo; Voyage 1 pedido mínimo) |
 | GET | `/api/chunks/:id/page` | manual, página e URL do PDF de uma secção ("Ver página") |
 | GET | `/api/documents/:id/file?t=` | PDF original (Range); token assinado, válido 6 h |
 | GET | `/api/videos` | vídeos (com URL de reprodução temporário) |

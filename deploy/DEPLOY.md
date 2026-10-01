@@ -301,11 +301,20 @@ npm run build
 
 ---
 
-## Ativar a IA mais tarde
+## Ativar a IA (testes)
 
-Quando o projeto decidir ligar a IA (Sprint 3 do `SPRINTS.md`):
+A IA liga-se e desliga-se **na aplicação**, sem reiniciar — só a chave API exige um reinício.
 
-1. Obter chaves da Anthropic (`ANTHROPIC_API_KEY`) e da Voyage AI (`VOYAGE_API_KEY`).
-2. Em `backend/.env`: preencher as duas chaves e mudar `AI_ENABLED=true`.
-3. `pm2 restart ara-api`.
-4. Gerar os embeddings dos manuais já carregados: `cd backend && npm run embed:backfill`.
+1. No servidor, em `backend/.env`:
+   ```bash
+   ANTHROPIC_API_KEY=sk-ant-...      # obrigatória para ligar a IA
+   VOYAGE_API_KEY=...                # opcional: pesquisa por significado
+   ```
+2. `pm2 restart ara-api`
+3. Na aplicação, como administrador: botão **IA** no cabeçalho → **Testar ligação** → ligar o interruptor.
+
+Notas:
+- O VPS tem de conseguir aceder a `api.anthropic.com` (e `api.voyageai.com`, se usar a Voyage). O botão "Testar ligação" confirma-o.
+- As chaves nunca são guardadas na base de dados nem enviadas ao navegador.
+- Desligar a IA no interruptor faz com que nada mais saia do servidor (volta à pesquisa por palavras-chave).
+- Com a chave Voyage, os embeddings dos manuais já carregados são gerados sozinhos em segundo plano ao ligar a IA (ou manualmente: `npm run embed:backfill`).

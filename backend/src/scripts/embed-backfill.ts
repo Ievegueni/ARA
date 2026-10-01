@@ -1,13 +1,14 @@
 /**
- * Gera embeddings para os chunks que ainda não os têm (manuais carregados com AI_ENABLED=false).
- * Correr uma vez ao ativar a IA: npm run embed:backfill
+ * Gera embeddings para os chunks que ainda não os têm (manuais carregados com a IA desligada).
+ * O backend já o faz sozinho em segundo plano quando a IA é ligada; este script serve para o
+ * fazer manualmente (ex.: depois de adicionar a VOYAGE_API_KEY). Uso: npm run embed:backfill
  */
 import { config } from "../config.js";
 import { prisma, toVectorLiteral } from "../lib/db.js";
 import { embed } from "../services/embeddings.js";
 
-if (!config.AI_ENABLED) {
-  console.error("Ative AI_ENABLED=true (com VOYAGE_API_KEY) antes de gerar embeddings.");
+if (!config.VOYAGE_API_KEY) {
+  console.error("Defina a VOYAGE_API_KEY no backend/.env antes de gerar embeddings.");
   process.exit(1);
 }
 const chunks = await prisma.$queryRaw<{ id: string; text: string }[]>`

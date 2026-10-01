@@ -1,7 +1,7 @@
 import { useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { AlertTriangle, Check, Copy, ThumbsDown, ThumbsUp } from "lucide-react";
+import { AlertTriangle, Check, Copy, Sparkles, ThumbsDown, ThumbsUp } from "lucide-react";
 import { api, type Message, type Source, type VideoRef } from "../lib/api";
 import { VideoCards } from "./VideoCards";
 import { ViewPageButton } from "./PageViewer";
@@ -15,6 +15,8 @@ const withCitations = (md: string) => md.replace(/\[((?:Sec[çc][ãa]o|Sec\.)[^\
 export interface UiMessage extends Message {
   streaming?: boolean;
   error?: string;
+  /** Aviso temporário (ex.: a IA falhou e a resposta mostra os excertos do manual). */
+  notice?: string;
 }
 
 export function MessageView({ m, onRated }: { m: UiMessage; onRated?: (rating: number | null) => void }) {
@@ -33,6 +35,11 @@ export function MessageView({ m, onRated }: { m: UiMessage; onRated?: (rating: n
       <LogoMark className="mt-0.5 size-8 shadow-md shadow-brand-500/20" />
       <div className="min-w-0 flex-1">
         <div className="rounded-2xl rounded-tl-md bg-white px-5 py-4 shadow-sm ring-1 ring-ink-100">
+          {m.notice && (
+            <div role="status" className="mb-3 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+              <AlertTriangle className="mt-px size-3.5 shrink-0 text-amber-600" /> {m.notice}
+            </div>
+          )}
           {m.mode === "pesquisa" && (m.sources?.length || m.videos?.length) ? (
             <ExcerptAnswer sources={m.sources ?? []} videos={m.videos ?? []} />
           ) : m.content ? (
@@ -72,6 +79,11 @@ export function MessageView({ m, onRated }: { m: UiMessage; onRated?: (rating: n
             </div>
           )}
 
+          {m.mode === "ia" && !m.streaming && !m.error && m.content && (
+            <p className="mt-3 flex items-center gap-1.5 text-[11px] text-ink-400">
+              <Sparkles className="size-3" /> Resposta escrita por IA com base no manual — confirme nas secções citadas.
+            </p>
+          )}
           {m.sources && !m.streaming && m.mode !== "pesquisa" && <Sources sources={m.sources} />}
           {!!m.videos?.length && !m.streaming && m.mode !== "pesquisa" && (
             <div className="mt-4">

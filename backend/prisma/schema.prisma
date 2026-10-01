@@ -115,3 +115,10 @@ model Video {
 
   @@index([tsv], map: "Video_tsv_idx", type: Gin)
 }
+
+/// Definições alteráveis em tempo real pelo administrador (ex.: "ai_enabled").
+model Setting {
+  key       String   @id
+  value     Json
+  updatedAt DateTime @updatedAt
+}

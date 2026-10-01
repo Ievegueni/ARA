@@ -30,6 +30,22 @@ export interface Message {
 
 export type Mode = "ia" | "pesquisa";
 
+/** Estado do interruptor da IA (administrador). As chaves API nunca chegam ao navegador, só se existem. */
+export interface AiState {
+  enabled: boolean;
+  active: boolean;
+  model: string;
+  keys: { claude: boolean; voyage: boolean };
+  search: "semantica" | "palavras-chave";
+  missingEmbeddings: number;
+  backfill: { running: boolean; done: number; total: number; error: string | null };
+}
+
+export interface AiTestResult {
+  claude: { ok: boolean; message: string };
+  voyage: { ok: boolean; message: string } | null;
+}
+
 /** Vídeo sugerido numa resposta ou numa pesquisa. */
 export interface VideoRef {
   id: string;
@@ -155,6 +171,10 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ username, password }),
     }),
+  aiState: () => request<{ ai: AiState }>("/api/settings/ai").then((r) => r.ai),
+  setAi: (enabled: boolean) =>
+    request<{ ai: AiState }>("/api/settings/ai", { method: "PUT", body: JSON.stringify({ enabled }) }).then((r) => r.ai),
+  testAi: () => request<{ result: AiTestResult }>("/api/settings/ai/test", { method: "POST" }).then((r) => r.result),
   health: () => request<{ ok: boolean; mode: Mode; model: string | null }>("/api/health"),
   me: () => request<{ user: User }>("/api/auth/me"),
   conversations: () => request<{ conversations: ConversationSummary[] }>("/api/conversations"),
@@ -232,6 +252,8 @@ export interface ChatHandlers {
   onMeta: (m: { conversationId: string; userMessageId: string; sources: Source[]; videos: VideoRef[]; mode: Mode }) => void;
   onDelta: (text: string) => void;
   onDone: (m: { messageId: string }) => void;
+  /** A IA falhou antes de responder: o servidor envia os excertos do manual em vez da resposta. */
+  onFallback: (m: { text: string; sources: Source[]; mode: Mode; notice: string }) => void;
   onError: (error: string) => void;
 }
 
@@ -270,6 +292,7 @@ export async function streamChat(
       if (event === "meta") h.onMeta(payload);
       else if (event === "delta") h.onDelta(payload.text);
       else if (event === "done") h.onDone(payload);
+      else if (event === "fallback") h.onFallback(payload);
       else if (event === "error") h.onError(payload.error);
     }
   }

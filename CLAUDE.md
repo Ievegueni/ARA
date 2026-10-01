@@ -3,11 +3,11 @@
 ## Visão Geral
 PoC de assistente de IA para apoio à resolução de avarias na manutenção de rede da Unitel. Responde a perguntas dos técnicos com base no conteúdo do manual do técnico, usando arquitetura RAG (Retrieval-Augmented Generation) — sem fine-tuning de modelo.
 
-## Fase atual: sem IA
-Por decisão do projeto, a IA fica para depois (`AI_ENABLED=false`):
+## Fase atual: sem IA (com interruptor para testes)
+Por decisão do projeto, a IA está desligada por omissão; o administrador liga/desliga-a na interface (botão "IA", guardado na tabela `Setting`, ver `services/ai.ts`):
 - Pesquisa por palavras-chave em português (Postgres full-text, coluna `Chunk.tsv`), sem serviços externos.
 - O chat devolve as secções do manual mais relevantes, com os termos destacados e a secção/página.
-- O código de IA (Voyage + Claude) mantém-se e liga-se com `AI_ENABLED=true` + `npm run embed:backfill`.
+- IA ligada exige `ANTHROPIC_API_KEY` no `.env` (as chaves nunca vão para a BD nem para o navegador). `VOYAGE_API_KEY` é opcional: sem ela a pesquisa continua por palavras-chave. Se o Claude falhar, o chat responde com os excertos e um aviso.
 - PDF original de cada manual guardado (`DOCUMENT_DIR`, `Document.storedName`); botão "Ver página" mostra a página com imagens/esquemas (pdf.js no navegador). A pesquisa continua a usar só o texto.
 - Vídeos de apoio (`Video`): guardados no VPS (`VIDEO_DIR`), pesquisáveis pelo título/descrição (coluna `Video.tsv`); sugeridos nas respostas do chat.
 

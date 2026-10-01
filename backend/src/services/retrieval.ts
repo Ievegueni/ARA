@@ -2,6 +2,7 @@ import { config } from "../config.js";
 import { prisma, toVectorLiteral } from "../lib/db.js";
 import { embed } from "./embeddings.js";
 import { cleanQuestion } from "./keywords.js";
+import { useSemanticSearch } from "./ai.js";
 
 export interface RetrievedChunk {
   id: string;
@@ -24,9 +25,9 @@ export interface SearchOptions {
   category?: string;
 }
 
-/** Pesquisa no manual: semântica (com IA) ou por palavras-chave (sem IA). */
-export function search(query: string, opts: SearchOptions = {}): Promise<RetrievedChunk[]> {
-  return config.AI_ENABLED ? semanticSearch(query, opts) : keywordSearch(query, opts);
+/** Pesquisa no manual: semântica (IA ativa + Voyage + embeddings completos) ou por palavras-chave. */
+export async function search(query: string, opts: SearchOptions = {}): Promise<RetrievedChunk[]> {
+  return (await useSemanticSearch()) ? semanticSearch(query, opts) : keywordSearch(query, opts);
 }
 
 /**
@@ -102,7 +103,7 @@ export async function searchVideos(query: string, opts: { topK?: number; minScor
   return rows.map((r) => ({ ...r, score: Number(r.score) })).filter((r) => r.score >= minScore);
 }
 
-/** Pesquisa semântica: embedding da pergunta vs. embeddings dos chunks (cosine). Requer AI_ENABLED. */
+/** Pesquisa semântica: embedding da pergunta vs. embeddings dos chunks (cosine). Requer VOYAGE_API_KEY. */
 export async function semanticSearch(query: string, opts: SearchOptions = {}): Promise<RetrievedChunk[]> {
   const topK = opts.topK ?? config.RETRIEVAL_TOP_K;
   const minScore = opts.minScore ?? config.RETRIEVAL_MIN_SCORE;

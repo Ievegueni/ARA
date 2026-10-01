@@ -5,7 +5,7 @@ export type EmbedInput = "document" | "query";
 const VOYAGE_BATCH = 64;
 
 /**
- * Gera embeddings com a Voyage AI (só usado com AI_ENABLED=true).
+ * Gera embeddings com a Voyage AI (só com a IA ativa e VOYAGE_API_KEY; ver services/ai.ts).
  * A API do Claude não tem endpoint de embeddings; a Anthropic recomenda a Voyage.
  */
 export async function embed(

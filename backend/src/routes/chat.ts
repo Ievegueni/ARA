@@ -6,6 +6,7 @@ import { prisma } from "../lib/db.js";
 import { search, searchVideos, type RetrievedChunk, type RetrievedVideo } from "../services/retrieval.js";
 import { excerptForDisplay } from "../services/format.js";
 import { answer, NO_CONTEXT_ANSWER, type ChatTurn } from "../services/llm.js";
+import { describeError, isAiActive } from "../services/ai.js";
 
 const chatBody = z.object({
   question: z.string().trim().min(2).max(2000),
@@ -123,9 +124,11 @@ export async function chatRoutes(app: FastifyInstance) {
     raw.on("close", () => abort.abort());
 
     try {
-      const mode = config.AI_ENABLED ? "ia" : "pesquisa";
+      // Decidido por pedido: o administrador pode ligar/desligar a IA a qualquer momento
+      const aiOn = isAiActive();
+      let mode: "ia" | "pesquisa" = aiOn ? "ia" : "pesquisa";
       let chunks: RetrievedChunk[];
-      if (config.AI_ENABLED) {
+      if (aiOn) {
         // Reforça a busca com a pergunta anterior quando é um seguimento curto ("e se não resolver?")
         const lastUser = [...previous].reverse().find((m) => m.role === "USER");
         const retrievalQuery = lastUser && question.length < 60 ? `${lastUser.content}\n${question}` : question;
@@ -140,31 +143,58 @@ export async function chatRoutes(app: FastifyInstance) {
         durationSec,
         score: Number(score.toFixed(3)),
       }));
-      const sources = chunks.map((c) => ({
-        chunkId: c.id,
-        document: `${c.documentTitle} v${c.documentVersion}`,
-        section: c.section,
-        pageStart: c.pageStart,
-        pageEnd: c.pageEnd,
-        score: Number(c.score.toFixed(3)),
-        // Sem IA o excerto é a própria resposta: texto completo com os termos destacados
-        excerpt: mode === "pesquisa" ? excerptForDisplay(c) : c.text.slice(0, 600),
-      }));
+      const toSources = (m: typeof mode) =>
+        chunks.map((c) => ({
+          chunkId: c.id,
+          document: `${c.documentTitle} v${c.documentVersion}`,
+          section: c.section,
+          pageStart: c.pageStart,
+          pageEnd: c.pageEnd,
+          score: Number(c.score.toFixed(3)),
+          // Sem IA o excerto é a própria resposta: texto completo com os termos destacados
+          excerpt: m === "pesquisa" ? excerptForDisplay(c) : c.text.slice(0, 600),
+        }));
+      let sources = toSources(mode);
       send("meta", { conversationId: conversation.id, userMessageId: userMessage.id, sources, videos, mode });
 
       let text: string;
-      if (!config.AI_ENABLED) {
+      if (!aiOn) {
         text = excerptsAnswer(chunks, videos);
         send("delta", { text });
       } else if (!chunks.length) {
         text = NO_CONTEXT_ANSWER;
         send("delta", { text });
       } else {
+        // Respostas antigas do modo sem IA são listas longas de excertos: resumidas para não encher o contexto
         const history: ChatTurn[] = previous.map((m) => ({
           role: m.role === "USER" ? "user" : "assistant",
-          content: m.content,
+          content:
+            m.role === "ASSISTANT" && m.mode === "pesquisa"
+              ? "[Foram mostrados ao técnico excertos do manual relacionados com a pergunta anterior.]"
+              : m.content,
         }));
-        text = await answer(question, chunks, history, (t) => send("delta", { text: t }), abort.signal);
+        let streamed = false;
+        try {
+          text = await answer(
+            question,
+            chunks,
+            history,
+            (t) => {
+              streamed = true;
+              send("delta", { text: t });
+            },
+            abort.signal,
+          );
+        } catch (err) {
+          // Se o Claude falhar antes de começar a responder (chave inválida, sem crédito, sem rede),
+          // o técnico recebe os excertos do manual em vez de um erro; o aviso explica porquê.
+          if (streamed || abort.signal.aborted) throw err;
+          req.log.warn({ err }, "IA indisponível — a responder com excertos do manual");
+          mode = "pesquisa";
+          sources = toSources(mode);
+          text = excerptsAnswer(chunks, videos);
+          send("fallback", { text, sources, mode, notice: `A IA não respondeu (${describeError(err)}). A mostrar os excertos do manual.` });
+        }
       }
 
       const saved = await prisma.message.create({
