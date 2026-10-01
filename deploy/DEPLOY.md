@@ -108,6 +108,7 @@ HOST=127.0.0.1                     # só o Nginx local acede; nunca expor 0.0.0.
 CORS_ORIGIN=https://ara.exemplo.ao   # domínio ou subdomínio real desta aplicação
 JWT_SECRET=<gerar com: openssl rand -base64 48>
 AI_ENABLED=false                   # modo atual: sem IA
+DOCUMENT_DIR=/var/www/ara/storage/manuals   # PDF originais dos manuais ("Ver página")
 VIDEO_DIR=/var/www/ara/storage/videos   # onde ficam os vídeos (fora da pasta do código)
 MAX_VIDEO_MB=500
 ```
@@ -115,7 +116,7 @@ MAX_VIDEO_MB=500
 Criar a pasta dos vídeos e confirmar o espaço livre em disco (os vídeos ocupam espaço partilhado com os outros projetos):
 
 ```bash
-mkdir -p /var/www/ara/storage/videos
+mkdir -p /var/www/ara/storage/manuals /var/www/ara/storage/videos
 df -h /var/www
 ```
 
@@ -278,8 +279,8 @@ npm run build
 | Testar a configuração do Nginx | `sudo nginx -t` |
 | Aplicar alterações ao Nginx sem cortar outros sites | `sudo systemctl reload nginx` |
 | Backup da base de dados desta aplicação | `pg_dump -U ara ara > backup-$(date +%F).sql` |
-| Backup dos vídeos | `tar czf videos-$(date +%F).tar.gz -C /var/www/ara/storage videos` |
-| Espaço ocupado pelos vídeos | `du -sh /var/www/ara/storage/videos` |
+| Backup dos ficheiros (PDF e vídeos) | `tar czf ficheiros-$(date +%F).tar.gz -C /var/www/ara storage` |
+| Espaço ocupado | `du -sh /var/www/ara/storage/*` |
 
 ---
 
@@ -295,7 +296,7 @@ npm run build
 - [ ] Processo PM2 com nome próprio (`ara-api`); nunca comandos "all"
 - [ ] Nginx: `nginx -t` antes de qualquer `reload`
 - [ ] Outros sites/serviços do VPS confirmados a funcionar depois do deploy
-- [ ] Backups regulares da base de dados desta aplicação **e da pasta dos vídeos** (`VIDEO_DIR`)
+- [ ] Backups regulares da base de dados desta aplicação **e da pasta `storage`** (PDF originais e vídeos)
 - [ ] Espaço em disco vigiado (os vídeos crescem e o disco é partilhado com outros projetos)
 
 ---

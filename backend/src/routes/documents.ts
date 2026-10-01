@@ -2,7 +2,11 @@ import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { requireAdmin, requireAuth } from "../lib/auth.js";
 import { prisma } from "../lib/db.js";
-import { ingestPdfBuffer } from "../services/ingest.js";
+import { unlink } from "node:fs/promises";
+import { join } from "node:path";
+import { DOCUMENT_DIR, ingestPdfBuffer } from "../services/ingest.js";
+import { documentFileUrl, verifyStreamToken } from "../lib/stream-token.js";
+import { sendFile } from "../lib/send-file.js";
 import { createJob, getJob, runningJobs } from "../services/jobs.js";
 
 export const MAX_UPLOAD_MB = 100;
@@ -16,9 +20,19 @@ export async function documentRoutes(app: FastifyInstance) {
   app.get("/api/documents", { preHandler: requireAuth }, async () => {
     const documents = await prisma.document.findMany({
       orderBy: { createdAt: "desc" },
-      select: { id: true, title: true, version: true, fileName: true, pages: true, createdAt: true, _count: { select: { chunks: true } } },
+      select: {
+        id: true,
+        title: true,
+        version: true,
+        fileName: true,
+        pages: true,
+        createdAt: true,
+        storedName: true,
+        _count: { select: { chunks: true } },
+      },
     });
-    return { documents };
+    // hasFile: false nos manuais carregados antes de se guardar o PDF original (é preciso recarregá-los)
+    return { documents: documents.map(({ storedName, ...d }) => ({ ...d, hasFile: storedName !== null })) };
   });
 
   /** Upload de um manual (PDF). A ingestão corre em segundo plano; o progresso é consultado em /api/documents/jobs/:id */
@@ -61,8 +75,43 @@ export async function documentRoutes(app: FastifyInstance) {
   });
 
   app.delete<{ Params: { id: string } }>("/api/documents/:id", { preHandler: requireAdmin }, async (req, reply) => {
+    const doc = await prisma.document.findUnique({ where: { id: req.params.id }, select: { storedName: true } });
     const { count } = await prisma.document.deleteMany({ where: { id: req.params.id } });
+    if (doc?.storedName) await unlink(join(DOCUMENT_DIR, doc.storedName)).catch(() => {});
     if (!count) return reply.code(404).send({ error: "Manual não encontrado" });
     return { ok: true };
   });
+
+  /** Dados para o leitor "Ver página no manual", a partir de um excerto (chunk) de uma resposta ou pesquisa. */
+  app.get<{ Params: { id: string } }>("/api/chunks/:id/page", { preHandler: requireAuth }, async (req, reply) => {
+    const chunk = await prisma.chunk.findUnique({
+      where: { id: req.params.id },
+      select: {
+        section: true,
+        pageStart: true,
+        pageEnd: true,
+        document: { select: { id: true, title: true, version: true, pages: true, storedName: true } },
+      },
+    });
+    if (!chunk) return reply.code(404).send({ error: "Esta secção já não existe — o manual foi atualizado ou apagado." });
+    const { document: d, ...page } = chunk;
+    return {
+      ...page,
+      document: { id: d.id, title: d.title, version: d.version, pages: d.pages },
+      fileUrl: d.storedName ? documentFileUrl(d.id) : null,
+    };
+  });
+
+  /** PDF original (com Range: o leitor só descarrega as partes de que precisa). Token assinado no URL. */
+  app.get<{ Params: { id: string }; Querystring: { t?: string } }>(
+    "/api/documents/:id/file",
+    { config: { rateLimit: false } },
+    async (req, reply) => {
+      if (!verifyStreamToken("document", req.params.id, req.query.t)) return reply.code(403).send({ error: "Ligação expirada ou inválida" });
+      const doc = await prisma.document.findUnique({ where: { id: req.params.id }, select: { storedName: true, fileName: true } });
+      if (!doc?.storedName) return reply.code(404).send({ error: "PDF original não disponível" });
+      reply.header("Content-Disposition", `inline; filename*=UTF-8''${encodeURIComponent(doc.fileName)}`);
+      return sendFile(req, reply, join(DOCUMENT_DIR, doc.storedName), "application/pdf", "PDF original em falta no servidor");
+    },
+  );
 }

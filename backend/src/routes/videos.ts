@@ -1,5 +1,5 @@
 import type { FastifyInstance } from "fastify";
-import { createReadStream, createWriteStream } from "node:fs";
+import { createWriteStream } from "node:fs";
 import { mkdir, open, rename, stat, unlink } from "node:fs/promises";
 import { extname, join, resolve } from "node:path";
 import { randomUUID } from "node:crypto";
@@ -8,7 +8,7 @@ import { z } from "zod";
 import { config } from "../config.js";
 import { requireAdmin, requireAuth } from "../lib/auth.js";
 import { prisma } from "../lib/db.js";
-import { parseRange } from "../lib/range.js";
+import { sendFile } from "../lib/send-file.js";
 import { streamUrl, verifyStreamToken } from "../lib/stream-token.js";
 
 const VIDEO_DIR = resolve(config.VIDEO_DIR);
@@ -142,24 +142,11 @@ export async function videoRoutes(app: FastifyInstance) {
     "/api/videos/:id/stream",
     { config: { rateLimit: false } },
     async (req, reply) => {
-      if (!verifyStreamToken(req.params.id, req.query.t)) return reply.code(403).send({ error: "Ligação expirada ou inválida" });
+      if (!verifyStreamToken("video", req.params.id, req.query.t)) return reply.code(403).send({ error: "Ligação expirada ou inválida" });
       const video = await prisma.video.findUnique({ where: { id: req.params.id }, select: { storedName: true, mimeType: true } });
       if (!video) return reply.code(404).send({ error: "Vídeo não encontrado" });
 
-      const path = join(VIDEO_DIR, video.storedName);
-      const info = await stat(path).catch(() => null);
-      if (!info) return reply.code(404).send({ error: "Ficheiro do vídeo em falta no servidor" });
-
-      reply.header("Accept-Ranges", "bytes").header("Content-Type", video.mimeType).header("Cache-Control", "private, max-age=3600");
-      const range = parseRange(req.headers.range, info.size);
-      if (range === null) return reply.code(416).header("Content-Range", `bytes */${info.size}`).send();
-      if (!range) return reply.header("Content-Length", info.size).send(createReadStream(path));
-
-      return reply
-        .code(206)
-        .header("Content-Range", `bytes ${range.start}-${range.end}/${info.size}`)
-        .header("Content-Length", range.end - range.start + 1)
-        .send(createReadStream(path, { start: range.start, end: range.end }));
+      return sendFile(req, reply, join(VIDEO_DIR, video.storedName), video.mimeType, "Ficheiro do vídeo em falta no servidor");
     },
   );
 }

@@ -58,6 +58,14 @@ Separador **Biblioteca → Vídeos** (administradores): carregar MP4 (recomendad
 - Os ficheiros ficam no VPS em `VIDEO_DIR` (por omissão `backend/storage/videos`) — incluir nos backups.
 - Formato recomendado: **MP4 (H.264 + AAC)**, que reproduz em todos os navegadores. O MOV pode não reproduzir no Chrome/Android.
 
+## Ver página no manual (imagens e esquemas)
+
+A pesquisa usa só o **texto** do PDF; imagens, esquemas e tabelas digitalizadas não são lidos. Para os consultar, cada secção encontrada (chat e Pesquisa) tem o botão **Ver página**, que abre a **página original** do PDF dentro da aplicação, já na página da secção, com navegação e zoom.
+
+- O PDF é desenhado no navegador (pdf.js, carregado só quando se abre uma página) e lido **por partes**: só descarrega o necessário (importante nos dados móveis).
+- O PDF original é guardado em `DOCUMENT_DIR` (por omissão `backend/storage/manuals`) — incluir nos backups.
+- Manuais carregados antes desta funcionalidade aparecem em **Biblioteca → Manuais** como “Sem PDF original — recarregar”: basta carregar o mesmo PDF com o mesmo título e versão.
+
 ## Carregar manuais
 
 **Pela interface (recomendado):** entrar com um utilizador administrador → separador **Biblioteca → Manuais** → arrastar o PDF, indicar título e versão → **Carregar manual**. O progresso é mostrado por etapas; no fim aparece o número de páginas e secções indexadas.
@@ -88,6 +96,8 @@ Ou no separador **Pesquisa** da interface.
 | POST | `/api/documents` | (admin) multipart `title`, `version`, `file` → `202 {job}` |
 | GET | `/api/documents/jobs/:id` | (admin) progresso da ingestão |
 | DELETE | `/api/documents/:id` | (admin) apaga o manual e as secções |
+| GET | `/api/chunks/:id/page` | manual, página e URL do PDF de uma secção ("Ver página") |
+| GET | `/api/documents/:id/file?t=` | PDF original (Range); token assinado, válido 6 h |
 | GET | `/api/videos` | vídeos (com URL de reprodução temporário) |
 | POST | `/api/videos` | (admin) multipart `title`, `description?`, `durationSec?`, `file` |
 | PATCH / DELETE | `/api/videos/:id` | (admin) editar título/descrição / apagar |

@@ -21,13 +21,15 @@ enum MessageRole {
 
 /// Manual do técnico (uma versão = um documento)
 model Document {
-  id        String   @id @default(cuid())
-  title     String
-  version   String
-  fileName  String
-  pages     Int
-  createdAt DateTime @default(now())
-  chunks    Chunk[]
+  id         String   @id @default(cuid())
+  title      String
+  version    String
+  fileName   String
+  pages      Int
+  /// Nome do PDF original em DOCUMENT_DIR (null em manuais carregados antes de se guardar o original)
+  storedName String?  @unique
+  createdAt  DateTime @default(now())
+  chunks     Chunk[]
 
   @@unique([title, version])
 }
@@ -97,17 +99,17 @@ model Message {
 
 /// Vídeo de apoio (guardado no disco do VPS). Pesquisável pelo título e descrição.
 model Video {
-  id          String                    @id @default(cuid())
+  id          String                   @id @default(cuid())
   title       String
   description String?
   /// Nome original do ficheiro enviado
   fileName    String
   /// Nome do ficheiro em VIDEO_DIR
-  storedName  String                    @unique
+  storedName  String                   @unique
   mimeType    String
   size        BigInt
   durationSec Int?
-  createdAt   DateTime                  @default(now())
+  createdAt   DateTime                 @default(now())
   /// Coluna gerada pelo Postgres (full-text search em português); não escrever
   tsv         Unsupported("tsvector")?
 

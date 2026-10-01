@@ -225,6 +225,14 @@ export function ManualsView({ onChanged }: { onChanged: () => void }) {
                       <span className="rounded-md bg-brand-50 px-1.5 py-0.5 text-[11px] font-semibold text-brand-700 ring-1 ring-brand-200 ring-inset">
                         v{d.version}
                       </span>
+                      {!d.hasFile && (
+                        <span
+                          title="Carregado antes de se guardar o PDF original: “Ver página” não está disponível. Volte a carregar o mesmo PDF com o mesmo título e versão."
+                          className="rounded-md bg-amber-50 px-1.5 py-0.5 text-[11px] font-medium text-amber-800 ring-1 ring-amber-200 ring-inset"
+                        >
+                          Sem PDF original — recarregar
+                        </span>
+                      )}
                     </div>
                     <div className="mt-0.5 truncate text-xs text-ink-400">
                       {d.pages} páginas · {d._count.chunks} secções indexadas · {new Date(d.createdAt).toLocaleDateString("pt-PT")} · {d.fileName}

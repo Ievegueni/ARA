@@ -73,6 +73,15 @@ export interface SearchResult {
   score: number;
 }
 
+/** Onde está uma secção no manual (para "Ver página"). fileUrl é null se o PDF original não foi guardado. */
+export interface ChunkPage {
+  section: string;
+  pageStart: number;
+  pageEnd: number;
+  document: { id: string; title: string; version: string; pages: number };
+  fileUrl: string | null;
+}
+
 export interface DocumentInfo {
   id: string;
   title: string;
@@ -81,6 +90,8 @@ export interface DocumentInfo {
   pages: number;
   createdAt: string;
   _count: { chunks: number };
+  /** false nos manuais carregados antes de se guardar o PDF original. */
+  hasFile: boolean;
 }
 
 export type IngestStage = "extracting" | "chunking" | "embedding" | "saving";
@@ -157,6 +168,7 @@ export const api = {
   updateVideo: (id: string, data: { title?: string; description?: string | null }) =>
     request<{ video: VideoInfo }>(`/api/videos/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
   deleteVideo: (id: string) => request(`/api/videos/${id}`, { method: "DELETE" }),
+  chunkPage: (chunkId: string) => request<ChunkPage>(`/api/chunks/${chunkId}/page`),
   documents: () => request<{ documents: DocumentInfo[] }>("/api/documents"),
   job: (id: string) => request<{ job: IngestJob }>(`/api/documents/jobs/${id}`),
   deleteDocument: (id: string) => request(`/api/documents/${id}`, { method: "DELETE" }),

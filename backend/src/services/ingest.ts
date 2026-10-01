@@ -1,5 +1,6 @@
-import { readFile } from "node:fs/promises";
-import { basename } from "node:path";
+import { mkdir, readFile, unlink, writeFile } from "node:fs/promises";
+import { basename, join, resolve } from "node:path";
+import { randomUUID } from "node:crypto";
 import { getDocument } from "pdfjs-dist/legacy/build/pdf.mjs";
 import { prisma, toVectorLiteral } from "../lib/db.js";
 import { chunkPages, type PageText } from "./chunker.js";
@@ -16,7 +17,7 @@ interface TextItem {
 export async function extractPdfPages(buffer: Buffer): Promise<PageText[]> {
   let doc;
   try {
-    doc = await getDocument({ data: new Uint8Array(buffer), verbosity: 0, isEvalSupported: false }).promise;
+    doc = await getDocument({ data: Uint8Array.from(buffer), verbosity: 0, isEvalSupported: false }).promise;
   } catch (err) {
     const msg = (err as Error).name === "PasswordException" ? "o PDF está protegido por palavra-passe" : "ficheiro danificado ou inválido";
     throw new Error(`Não foi possível abrir o PDF: ${msg}`);
@@ -53,6 +54,8 @@ export interface IngestResult {
   chunks: number;
 }
 
+export const DOCUMENT_DIR = resolve(config.DOCUMENT_DIR);
+
 export type IngestStage = "extracting" | "chunking" | "embedding" | "saving";
 export type IngestProgress = (stage: IngestStage, done?: number, total?: number) => void;
 
@@ -83,17 +86,40 @@ export async function ingestPdfBuffer(
   }
   onProgress("saving", 0, drafts.length);
 
+  // PDF original no disco, para mostrar a página com imagens e esquemas ("Ver página no manual")
+  await mkdir(DOCUMENT_DIR, { recursive: true });
+  const storedName = `${randomUUID()}.pdf`;
+  await writeFile(join(DOCUMENT_DIR, storedName), buffer);
+  const replaced = await prisma.document.findMany({ where: { title, version }, select: { storedName: true } });
+
+  let result: IngestResult;
+  try {
+    result = await saveDocument({ title, version, fileName, pages: pages.length, storedName }, drafts, vectors, onProgress);
+  } catch (err) {
+    await unlink(join(DOCUMENT_DIR, storedName)).catch(() => {});
+    throw err;
+  }
+  // Reingerir a mesma versão substitui-a: apaga também o PDF da versão anterior
+  await Promise.all(replaced.map((d) => d.storedName && unlink(join(DOCUMENT_DIR, d.storedName)).catch(() => {})));
+  return result;
+}
+
+/** Grava o documento e os chunks numa transação (substitui a mesma título+versão). */
+function saveDocument(
+  doc: { title: string; version: string; fileName: string; pages: number; storedName: string },
+  drafts: ReturnType<typeof chunkPages>,
+  vectors: number[][] | null,
+  onProgress: IngestProgress,
+): Promise<IngestResult> {
   return prisma.$transaction(
     async (tx) => {
-      await tx.document.deleteMany({ where: { title, version } });
-      const doc = await tx.document.create({
-        data: { title, version, fileName, pages: pages.length },
-      });
+      await tx.document.deleteMany({ where: { title: doc.title, version: doc.version } });
+      const created = await tx.document.create({ data: doc });
       for (let i = 0; i < drafts.length; i++) {
         const d = drafts[i];
         const chunk = await tx.chunk.create({
           data: {
-            documentId: doc.id,
+            documentId: created.id,
             ordinal: d.ordinal,
             section: d.section,
             category: d.category,
@@ -108,7 +134,7 @@ export async function ingestPdfBuffer(
         }
         if (i % 20 === 19) onProgress("saving", i + 1, drafts.length);
       }
-      return { documentId: doc.id, pages: pages.length, chunks: drafts.length };
+      return { documentId: created.id, pages: doc.pages, chunks: drafts.length };
     },
     { timeout: 5 * 60_000 },
   );

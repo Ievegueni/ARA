@@ -4,6 +4,7 @@ import remarkGfm from "remark-gfm";
 import { AlertTriangle, Check, Copy, ThumbsDown, ThumbsUp } from "lucide-react";
 import { api, type Message, type Source, type VideoRef } from "../lib/api";
 import { VideoCards } from "./VideoCards";
+import { ViewPageButton } from "./PageViewer";
 import { Excerpt } from "./Excerpt";
 import { LogoMark } from "./Logo";
 import { pagesLabel, ScoreBar, Sources } from "./Sources";
@@ -110,7 +111,10 @@ function ExcerptAnswer({ sources, videos }: { sources: Source[]; videos: VideoRe
                   {s.document} · {pagesLabel(s.pageStart, s.pageEnd)}
                 </div>
               </div>
-              <ScoreBar score={s.score} label="Termos da pesquisa encontrados nesta secção" />
+              <div className="flex items-center gap-3">
+                <ScoreBar score={s.score} label="Termos da pesquisa encontrados nesta secção" />
+                <ViewPageButton chunkId={s.chunkId} />
+              </div>
             </div>
             <div className="mt-3 border-t border-ink-100 pt-2">
               <Excerpt text={s.excerpt} clamp={i > 0} />

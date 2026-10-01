@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { BookOpen, ChevronDown, FileText } from "lucide-react";
 import type { Source } from "../lib/api";
+import { ViewPageButton } from "./PageViewer";
 
 export const pagesLabel = (a: number, b: number) => (a === b ? `p. ${a}` : `pp. ${a}–${b}`);
 
@@ -46,10 +47,13 @@ export function Sources({ sources }: { sources: Source[] }) {
                 <ScoreBar score={s.score} />
               </button>
               {expanded === s.chunkId && (
-                <p className="border-t border-ink-100 px-3 py-2.5 text-xs leading-relaxed whitespace-pre-line text-ink-600">
-                  {s.excerpt}
-                  {s.excerpt.length >= 600 && "…"}
-                </p>
+                <div className="border-t border-ink-100 px-3 py-2.5">
+                  <p className="text-xs leading-relaxed whitespace-pre-line text-ink-600">
+                    {s.excerpt}
+                    {s.excerpt.length >= 600 && "…"}
+                  </p>
+                  <ViewPageButton chunkId={s.chunkId} className="mt-2" />
+                </div>
               )}
             </li>
           ))}

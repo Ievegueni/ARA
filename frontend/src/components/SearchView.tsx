@@ -2,6 +2,7 @@ import { useState, type FormEvent } from "react";
 import { FileSearch, Loader2, Search } from "lucide-react";
 import { api, type SearchResult, type VideoRef } from "../lib/api";
 import { VideoCards } from "./VideoCards";
+import { ViewPageButton } from "./PageViewer";
 import { pagesLabel, ScoreBar } from "./Sources";
 import { Excerpt } from "./Excerpt";
 
@@ -80,6 +81,7 @@ export function SearchView({ category }: { category: string }) {
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
                     <span className="font-semibold text-ink-900">{r.section}</span>
                     <ScoreBar score={r.score} label="Correspondência com a pesquisa" />
+                    <ViewPageButton chunkId={r.id} className="sm:ml-auto" />
                   </div>
                   <div className="mt-0.5 text-xs text-ink-400">
                     {r.documentTitle} v{r.documentVersion} · {pagesLabel(r.pageStart, r.pageEnd)}
