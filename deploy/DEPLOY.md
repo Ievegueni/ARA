@@ -83,6 +83,48 @@ As extensões (`vector`, `unaccent`) são ativadas pela própria migração da a
 
 ## 4. Obter o código
 
+### Opção A — ficheiro `.tar` (sem git no VPS)
+
+**No seu computador**, obter o arquivo do código:
+
+- **GitHub:** no repositório, escolher o branch **`claude/focused-wright-j2rags`** (o código não está noutro branch) → **Code → Download ZIP**; ou descarregar o `.tar.gz` diretamente:
+  `https://github.com/Ievegueni/ARA/archive/refs/heads/claude/focused-wright-j2rags.tar.gz`
+- **Ou, com git no computador:**
+  ```bash
+  git archive --format=tar.gz -o ara.tar.gz claude/focused-wright-j2rags
+  ```
+
+**Enviar para o VPS** (a partir do computador):
+
+```bash
+scp ara.tar.gz utilizador@IP-DO-VPS:/tmp/
+```
+
+**No VPS**, como o utilizador `ara`, extrair para `/var/www/ara`:
+
+```bash
+cd /var/www/ara
+tar tzf /tmp/ara.tar.gz | head -3        # ver se o arquivo tem uma pasta de topo
+```
+
+- Se as linhas começam por uma pasta (ex.: `ARA-claude-focused-wright-j2rags/backend/...`), extrair **sem** essa pasta:
+  ```bash
+  tar xzf /tmp/ara.tar.gz --strip-components=1 -C /var/www/ara
+  ```
+- Se começam logo por `backend/`, `frontend/`…:
+  ```bash
+  tar xzf /tmp/ara.tar.gz -C /var/www/ara
+  ```
+- Se descarregou o **ZIP**: `unzip /tmp/ara.zip -d /tmp/ara-zip && cp -r /tmp/ara-zip/*/. /var/www/ara/`
+
+Confirmar: `ls /var/www/ara` deve mostrar `backend  deploy  docs  frontend  README.md …`.
+
+O arquivo **não** inclui `backend/.env`, `node_modules` nem `storage` (são criados nos passos seguintes).
+
+O VPS precisa de acesso a `registry.npmjs.org` para o `npm ci` (passos 6 e 7).
+
+### Opção B — git
+
 ```bash
 cd /var/www/ara
 git clone <url-do-repositorio> .
@@ -128,7 +170,7 @@ df -h /var/www
 
 ```bash
 cd /var/www/ara/backend
-npm ci
+npm ci --include=dev   # --include=dev: necessário se o VPS tiver NODE_ENV=production (ver nota abaixo)
 npm run db:migrate     # cria as tabelas desta aplicação; não toca noutras bases de dados
 npm run build
 ```
@@ -141,11 +183,15 @@ npm run user:create -- admin 'PalavraPasse123!' "Nome do Administrador" --admin
 
 ---
 
+> **Porquê `--include=dev`:** muitos servidores com outros projetos têm `NODE_ENV=production` definido. Nesse caso, um `npm ci` simples não instala o TypeScript, o Vite nem o Prisma CLI, e a compilação falha (ex.: `Cannot find type definition file for 'vite/client'`). Com `--include=dev` funciona em qualquer servidor.
+
+---
+
 ## 7. Compilar o frontend
 
 ```bash
 cd /var/www/ara/frontend
-npm ci
+npm ci --include=dev
 npm run build           # gera frontend/dist/ (ficheiros estáticos)
 ```
 
@@ -251,18 +297,27 @@ Vídeos: **Biblioteca → Vídeos** → arrastar o vídeo (MP4 recomendado, até
 
 ## Publicar uma atualização
 
-```bash
-cd /var/www/ara
-git pull origin claude/focused-wright-j2rags
+**1. Obter o código novo**
 
-cd backend
-npm ci
+- Com `.tar` — enviar o novo arquivo (passo 4, opção A) e extrair **por cima** da pasta atual:
+  ```bash
+  cp /var/www/ara/backend/.env ~/ara-env-backup      # cópia de segurança da configuração
+  tar xzf /tmp/ara.tar.gz --strip-components=1 -C /var/www/ara   # (sem --strip-components se o arquivo não tiver pasta de topo)
+  ```
+  A extração substitui o código mas **não apaga** o `backend/.env` nem a pasta `storage` (manuais e vídeos), porque não vêm no arquivo.
+- Com git: `cd /var/www/ara && git pull origin claude/focused-wright-j2rags`
+
+**2. Instalar, migrar, compilar e reiniciar**
+
+```bash
+cd /var/www/ara/backend
+npm ci --include=dev
 npm run db:migrate
 npm run build
 pm2 restart ara-api        # só este processo, nunca "restart all"
 
 cd ../frontend
-npm ci
+npm ci --include=dev
 npm run build
 # não precisa de reiniciar nada: o Nginx serve os ficheiros de dist/ diretamente
 ```

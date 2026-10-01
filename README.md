@@ -118,8 +118,8 @@ Ou no separador **Pesquisa** da interface.
 Guia completo, passo a passo, em `deploy/DEPLOY.md`. Requisitos do servidor em `deploy/requirements.txt`. Resumo:
 
 ```bash
-cd backend && npm ci && npm run build && npm run db:migrate
-cd ../frontend && npm ci && npm run build   # copiar dist/ para /var/www/ara/frontend/dist
+cd backend && npm ci --include=dev && npm run build && npm run db:migrate
+cd ../frontend && npm ci --include=dev && npm run build   # copiar dist/ para /var/www/ara/frontend/dist
 pm2 start deploy/ecosystem.config.cjs
 ```
 Nginx: ver `deploy/nginx.conf` (inclui `proxy_buffering off` para o streaming). As fontes são servidas localmente (sem Google Fonts), porque a rede Unitel bloqueia domínios externos.
