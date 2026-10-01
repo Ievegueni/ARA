@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { FileSearch, Loader2, Search } from "lucide-react";
-import { api, type SearchResult } from "../lib/api";
+import { api, type SearchResult, type VideoRef } from "../lib/api";
+import { VideoCards } from "./VideoCards";
 import { pagesLabel, ScoreBar } from "./Sources";
 import { Excerpt } from "./Excerpt";
 
@@ -8,6 +9,7 @@ import { Excerpt } from "./Excerpt";
 export function SearchView({ category }: { category: string }) {
   const [q, setQ] = useState("");
   const [results, setResults] = useState<SearchResult[] | null>(null);
+  const [videos, setVideos] = useState<VideoRef[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -17,7 +19,9 @@ export function SearchView({ category }: { category: string }) {
     setLoading(true);
     setError(null);
     try {
-      setResults((await api.search(q.trim(), category || undefined)).results);
+      const r = await api.search(q.trim(), category || undefined);
+      setResults(r.results);
+      setVideos(r.videos);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro na pesquisa");
     } finally {
@@ -29,9 +33,9 @@ export function SearchView({ category }: { category: string }) {
     <div className="scroll-thin flex-1 overflow-y-auto">
       <div className="mx-auto max-w-3xl px-4 py-8">
         <div className="mb-6">
-          <h1 className="text-2xl font-semibold tracking-tight">Pesquisa no manual</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Pesquisa</h1>
           <p className="mt-1 text-sm text-ink-500">
-            Encontre as secções do manual onde aparecem os termos pesquisados, das mais para as menos relevantes.
+            Encontre as secções do manual e os vídeos onde aparecem os termos pesquisados, dos mais para os menos relevantes.
           </p>
         </div>
 
@@ -51,11 +55,20 @@ export function SearchView({ category }: { category: string }) {
 
         {error && <p className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
 
-        {results && results.length === 0 && (
+        {results && results.length === 0 && videos.length === 0 && (
           <div className="mt-16 text-center text-ink-500">
             <FileSearch className="mx-auto mb-3 size-10 text-ink-300" />
-            Nenhum excerto encontrado.
+            Nada encontrado no manual nem nos vídeos.
           </div>
+        )}
+
+        {videos.length > 0 && (
+          <div className="mt-6">
+            <VideoCards videos={videos} title="Vídeos" />
+          </div>
+        )}
+        {results && results.length > 0 && videos.length > 0 && (
+          <h3 className="mt-6 -mb-3 text-xs font-semibold tracking-wider text-ink-500 uppercase">No manual</h3>
         )}
 
         <ol className="mt-6 space-y-3">

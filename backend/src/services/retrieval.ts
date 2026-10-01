@@ -38,14 +38,8 @@ export async function keywordSearch(query: string, opts: SearchOptions = {}): Pr
   const topK = opts.topK ?? config.RETRIEVAL_TOP_K;
   const minScore = opts.minScore ?? config.KEYWORD_MIN_COVERAGE;
   const category = opts.category ?? null;
-  const q = cleanQuestion(query);
-
-  const [{ lexemes }] = await prisma.$queryRaw<{ lexemes: string[] }[]>`
-    SELECT coalesce(array(
-      SELECT DISTINCT m[1] FROM regexp_matches(plainto_tsquery('pt_unaccent', ${q})::text, '''([^'']+)''', 'g') AS m
-    ), '{}') AS lexemes`;
+  const { lexemes, orQuery } = await queryTerms(query);
   if (!lexemes.length) return [];
-  const orQuery = lexemes.map((l) => `'${l.replace(/'/g, "''")}'`).join(" | ");
 
   const rows = await prisma.$queryRaw<(RetrievedChunk & { rank: number })[]>`
     WITH q AS (SELECT ${orQuery}::tsquery AS query)
@@ -66,6 +60,46 @@ export async function keywordSearch(query: string, opts: SearchOptions = {}): Pr
   return rows
     .map(({ rank: _rank, ...r }) => ({ ...r, score: Number(r.score) }))
     .filter((r) => r.score >= minScore);
+}
+
+/** Termos da pergunta já normalizados pelo Postgres (sem acentos, radicais, sem stopwords) e a tsquery OU. */
+export async function queryTerms(query: string): Promise<{ lexemes: string[]; orQuery: string }> {
+  const q = cleanQuestion(query);
+  const [{ lexemes }] = await prisma.$queryRaw<{ lexemes: string[] }[]>`
+    SELECT coalesce(array(
+      SELECT DISTINCT m[1] FROM regexp_matches(plainto_tsquery('pt_unaccent', ${q})::text, '''([^'']+)''', 'g') AS m
+    ), '{}') AS lexemes`;
+  return { lexemes, orQuery: lexemes.map((l) => `'${l.replace(/'/g, "''")}'`).join(" | ") };
+}
+
+export interface RetrievedVideo {
+  id: string;
+  title: string;
+  description: string | null;
+  durationSec: number | null;
+  /** 0–1: fração dos termos da pergunta presentes no título/descrição. */
+  score: number;
+}
+
+/** Pesquisa de vídeos pelo título (peso maior) e descrição, por palavras-chave. Usada com e sem IA. */
+export async function searchVideos(query: string, opts: { topK?: number; minScore?: number } = {}): Promise<RetrievedVideo[]> {
+  const topK = opts.topK ?? config.VIDEO_ANSWER_COUNT;
+  const minScore = opts.minScore ?? config.KEYWORD_MIN_COVERAGE;
+  if (topK === 0) return [];
+  const { lexemes, orQuery } = await queryTerms(query);
+  if (!lexemes.length) return [];
+
+  const rows = await prisma.$queryRaw<RetrievedVideo[]>`
+    WITH q AS (SELECT ${orQuery}::tsquery AS query)
+    SELECT v.id, v.title, v.description, v."durationSec",
+           (SELECT count(*) FROM unnest(${lexemes}::text[]) l WHERE v.tsv @@ quote_literal(l)::tsquery)::float
+             / ${lexemes.length} AS score
+    FROM "Video" v, q
+    WHERE v.tsv @@ q.query
+    ORDER BY score DESC, ts_rank(v.tsv, q.query) DESC, v."createdAt" DESC
+    LIMIT ${topK}`;
+
+  return rows.map((r) => ({ ...r, score: Number(r.score) })).filter((r) => r.score >= minScore);
 }
 
 /** Pesquisa semântica: embedding da pergunta vs. embeddings dos chunks (cosine). Requer AI_ENABLED. */

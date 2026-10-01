@@ -5,7 +5,7 @@ import { Login } from "./components/Login";
 import { Sidebar, type View } from "./components/Sidebar";
 import { ChatView } from "./components/ChatView";
 import { SearchView } from "./components/SearchView";
-import { ManualsView } from "./components/ManualsView";
+import { LibraryView } from "./components/LibraryView";
 import { CategorySelect } from "./components/CategorySelect";
 import type { UiMessage } from "./components/MessageView";
 
@@ -116,10 +116,10 @@ function Shell({ user, onLogout }: { user: User; onLogout: () => void }) {
       await streamChat(
         { question, conversationId: activeId ?? undefined, category: category || undefined },
         {
-          onMeta: ({ conversationId, userMessageId, sources, mode }) => {
+          onMeta: ({ conversationId, userMessageId, sources, videos, mode }) => {
             setActiveId(conversationId);
             setMessages((all) => all.map((m) => (m.id === tmpUser ? { ...m, id: userMessageId } : m)));
-            patchBot((m) => ({ ...m, sources, mode }));
+            patchBot((m) => ({ ...m, sources, videos, mode }));
             refreshConversations();
           },
           onDelta: (t) => patchBot((m) => ({ ...m, content: m.content + t })),
@@ -141,7 +141,7 @@ function Shell({ user, onLogout }: { user: User; onLogout: () => void }) {
   }
 
   const title =
-    view === "search" ? "Pesquisa no manual" : view === "manuals" ? "Manuais" : conversations.find((c) => c.id === activeId)?.title ?? "Nova conversa";
+    view === "search" ? "Pesquisa" : view === "manuals" ? "Biblioteca" : conversations.find((c) => c.id === activeId)?.title ?? "Nova conversa";
 
   return (
     <div className="flex h-full">
@@ -184,7 +184,7 @@ function Shell({ user, onLogout }: { user: User; onLogout: () => void }) {
         ) : view === "search" ? (
           <SearchView category={category} />
         ) : (
-          <ManualsView onChanged={refreshCategories} />
+          <LibraryView onChanged={refreshCategories} />
         )}
       </main>
     </div>

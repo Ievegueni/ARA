@@ -8,8 +8,8 @@ import { createJob, getJob, runningJobs } from "../services/jobs.js";
 export const MAX_UPLOAD_MB = 100;
 
 const fields = z.object({
-  title: z.string().trim().min(2, "Título obrigatório").max(150),
-  version: z.string().trim().min(1, "Versão obrigatória").max(30),
+  title: z.string({ error: "Título obrigatório" }).trim().min(2, "Título obrigatório").max(150),
+  version: z.string({ error: "Versão obrigatória" }).trim().min(1, "Versão obrigatória").max(30),
 });
 
 export async function documentRoutes(app: FastifyInstance) {

@@ -2,7 +2,8 @@ import { useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { AlertTriangle, Check, Copy, ThumbsDown, ThumbsUp } from "lucide-react";
-import { api, type Message, type Source } from "../lib/api";
+import { api, type Message, type Source, type VideoRef } from "../lib/api";
+import { VideoCards } from "./VideoCards";
 import { Excerpt } from "./Excerpt";
 import { LogoMark } from "./Logo";
 import { pagesLabel, ScoreBar, Sources } from "./Sources";
@@ -31,8 +32,8 @@ export function MessageView({ m, onRated }: { m: UiMessage; onRated?: (rating: n
       <LogoMark className="mt-0.5 size-8 shadow-md shadow-brand-500/20" />
       <div className="min-w-0 flex-1">
         <div className="rounded-2xl rounded-tl-md bg-white px-5 py-4 shadow-sm ring-1 ring-ink-100">
-          {m.mode === "pesquisa" && m.sources?.length ? (
-            <ExcerptAnswer sources={m.sources} />
+          {m.mode === "pesquisa" && (m.sources?.length || m.videos?.length) ? (
+            <ExcerptAnswer sources={m.sources ?? []} videos={m.videos ?? []} />
           ) : m.content ? (
             <div className="prose prose-sm max-w-none text-[15px] prose-headings:font-semibold prose-headings:text-ink-900 prose-p:leading-relaxed prose-strong:text-ink-900 prose-ol:pl-5 prose-li:marker:font-semibold prose-li:marker:text-brand-600">
               <ReactMarkdown
@@ -71,6 +72,11 @@ export function MessageView({ m, onRated }: { m: UiMessage; onRated?: (rating: n
           )}
 
           {m.sources && !m.streaming && m.mode !== "pesquisa" && <Sources sources={m.sources} />}
+          {!!m.videos?.length && !m.streaming && m.mode !== "pesquisa" && (
+            <div className="mt-4">
+              <VideoCards videos={m.videos} />
+            </div>
+          )}
         </div>
         {!m.streaming && !m.error && m.id && !m.id.startsWith("tmp-") && <Actions m={m} onRated={onRated} />}
       </div>
@@ -79,14 +85,22 @@ export function MessageView({ m, onRated }: { m: UiMessage; onRated?: (rating: n
 }
 
 /** Resposta do modo sem IA: as secções do manual encontradas, com os termos destacados. */
-function ExcerptAnswer({ sources }: { sources: Source[] }) {
+function ExcerptAnswer({ sources, videos }: { sources: Source[]; videos: VideoRef[] }) {
+  const n = (count: number, one: string, many: string) => <strong className="text-ink-900">{count === 1 ? `1 ${one}` : `${count} ${many}`}</strong>;
   return (
     <div>
       <p className="text-[15px] text-ink-700">
-        Encontrei <strong className="text-ink-900">{sources.length === 1 ? "1 secção" : `${sources.length} secções`}</strong> do manual{" "}
-        {sources.length === 1 ? "relacionada" : "relacionadas"} com a pesquisa:
+        Encontrei {sources.length > 0 && <>{n(sources.length, "secção", "secções")} do manual</>}
+        {sources.length > 0 && videos.length > 0 && " e "}
+        {videos.length > 0 && n(videos.length, "vídeo", "vídeos")} relacionados com a pesquisa:
       </p>
-      <ol className="mt-4 space-y-3">
+      {videos.length > 0 && (
+        <div className="mt-4">
+          <VideoCards videos={videos} />
+        </div>
+      )}
+      {sources.length > 0 && videos.length > 0 && <h3 className="mt-5 text-xs font-semibold tracking-wider text-ink-500 uppercase">No manual</h3>}
+      <ol className={`${videos.length ? "mt-2.5" : "mt-4"} space-y-3`}>
         {sources.map((s, i) => (
           <li key={s.chunkId} className="rounded-xl border border-ink-100 bg-ink-50/40 p-4">
             <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-1.5">

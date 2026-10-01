@@ -86,9 +86,30 @@ model Message {
   sources        Json?
   /// "pesquisa" (excertos do manual, sem IA) | "ia" (resposta do Claude)
   mode           String       @default("ia")
+  /// Vídeos sugeridos: [{ id, title, durationSec, score }]
+  videos         Json?
   /// Feedback do técnico: 1 (útil) | -1 (não útil)
   rating         Int?
   createdAt      DateTime     @default(now())
 
   @@index([conversationId, createdAt])
+}
+
+/// Vídeo de apoio (guardado no disco do VPS). Pesquisável pelo título e descrição.
+model Video {
+  id          String                    @id @default(cuid())
+  title       String
+  description String?
+  /// Nome original do ficheiro enviado
+  fileName    String
+  /// Nome do ficheiro em VIDEO_DIR
+  storedName  String                    @unique
+  mimeType    String
+  size        BigInt
+  durationSec Int?
+  createdAt   DateTime                  @default(now())
+  /// Coluna gerada pelo Postgres (full-text search em português); não escrever
+  tsv         Unsupported("tsvector")?
+
+  @@index([tsv], map: "Video_tsv_idx", type: Gin)
 }

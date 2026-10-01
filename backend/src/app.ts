@@ -9,6 +9,7 @@ import { authRoutes } from "./routes/auth.js";
 import { searchRoutes } from "./routes/search.js";
 import { chatRoutes } from "./routes/chat.js";
 import { documentRoutes } from "./routes/documents.js";
+import { videoRoutes } from "./routes/videos.js";
 
 export async function buildApp() {
   const app = Fastify({ logger: { level: process.env.LOG_LEVEL ?? "info" } });
@@ -27,5 +28,6 @@ export async function buildApp() {
   await app.register(searchRoutes);
   await app.register(chatRoutes);
   await app.register(documentRoutes);
+  await app.register(videoRoutes);
   return app;
 }

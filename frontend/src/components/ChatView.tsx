@@ -17,11 +17,16 @@ interface Props {
 
 export function ChatView({ user, mode, messages, busy, loading, onSend, onStop }: Props) {
   const endRef = useRef<HTMLDivElement>(null);
+  const lastRef = useRef<HTMLDivElement>(null);
   const last = messages[messages.length - 1];
+  const lastDone = last?.role === "ASSISTANT" && !last.streaming;
 
   useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: busy ? "auto" : "smooth", block: "end" });
-  }, [messages.length, last?.content, busy]);
+    // Resposta terminada: mostra o início dela (vídeos e primeira secção), não o fim.
+    // Enquanto chega (ou após enviar a pergunta): acompanha o fim da conversa.
+    if (lastDone) lastRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    else endRef.current?.scrollIntoView({ behavior: busy ? "auto" : "smooth", block: "end" });
+  }, [messages.length, last?.content, busy, lastDone]);
 
   return (
     <>
@@ -39,8 +44,10 @@ export function ChatView({ user, mode, messages, busy, loading, onSend, onStop }
           <EmptyState name={user.name} mode={mode} onPick={onSend} />
         ) : (
           <div className="mx-auto max-w-3xl space-y-6 px-4 py-8">
-            {messages.map((m) => (
-              <MessageView key={m.id} m={m} />
+            {messages.map((m, i) => (
+              <div key={m.id} ref={i === messages.length - 1 ? lastRef : undefined} className="scroll-mt-4">
+                <MessageView m={m} />
+              </div>
             ))}
             <div ref={endRef} />
           </div>

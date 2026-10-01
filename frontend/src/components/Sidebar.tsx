@@ -1,4 +1,4 @@
-import { BookOpen, LogOut, MessageSquareText, Plus, Search, Trash2, X } from "lucide-react";
+import { Library, LogOut, MessageSquareText, Plus, Search, Trash2, X } from "lucide-react";
 import type { ConversationSummary, User } from "../lib/api";
 import { Logo } from "./Logo";
 
@@ -65,7 +65,7 @@ export function Sidebar(p: Props) {
               [
                 ["chat", MessageSquareText, "Assistente"],
                 ["search", Search, "Pesquisa"],
-                ...(p.user.role === "ADMIN" ? ([["manuals", BookOpen, "Manuais"]] as const) : []),
+                ...(p.user.role === "ADMIN" ? ([["manuals", Library, "Biblioteca"]] as const) : []),
               ] as const
             ).map(([v, Icon, label]) => (
               <button

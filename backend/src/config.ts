@@ -25,6 +25,13 @@ const schema = z
     KEYWORD_MIN_COVERAGE: z.coerce.number().min(0).max(1).default(0.3),
     /** Excertos mostrados por resposta no modo sem IA. */
     KEYWORD_ANSWER_CHUNKS: z.coerce.number().int().min(1).max(10).default(3),
+
+    /** Pasta onde os vídeos ficam guardados no VPS. */
+    VIDEO_DIR: z.string().default("./storage/videos"),
+    /** Tamanho máximo por vídeo (MB). Ajustar também o client_max_body_size do Nginx. */
+    MAX_VIDEO_MB: z.coerce.number().int().min(1).default(500),
+    /** Vídeos sugeridos por resposta no chat. */
+    VIDEO_ANSWER_COUNT: z.coerce.number().int().min(0).max(10).default(2),
   })
   .superRefine((c, ctx) => {
     if (!c.AI_ENABLED) return;

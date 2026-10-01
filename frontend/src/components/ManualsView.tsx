@@ -112,14 +112,10 @@ export function ManualsView({ onChanged }: { onChanged: () => void }) {
   const busy = upload?.phase === "upload" || (upload?.phase === "job" && upload.job.status === "running");
 
   return (
-    <div className="scroll-thin flex-1 overflow-y-auto">
-      <div className="mx-auto max-w-4xl px-4 py-8">
-        <div className="mb-6">
-          <h1 className="text-2xl font-semibold tracking-tight text-navy-950">Manuais</h1>
-          <p className="mt-1 text-sm text-ink-500">
-            Carregue o manual do técnico em PDF. O assistente passa a usá-lo assim que o processamento terminar.
-          </p>
-        </div>
+    <>
+        <p className="mb-5 text-sm text-ink-500">
+          Carregue o manual do técnico em PDF. O assistente passa a usá-lo assim que o processamento terminar.
+        </p>
 
         {/* Upload */}
         <section className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-ink-100 sm:p-6">
@@ -247,8 +243,7 @@ export function ManualsView({ onChanged }: { onChanged: () => void }) {
             </ul>
           )}
         </section>
-      </div>
-    </div>
+    </>
   );
 }
 

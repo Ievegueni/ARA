@@ -24,10 +24,34 @@ export interface Message {
   rating?: number | null;
   /** "pesquisa" = excertos do manual (sem IA) | "ia" = resposta do Claude */
   mode?: Mode;
+  videos?: VideoRef[] | null;
   createdAt?: string;
 }
 
 export type Mode = "ia" | "pesquisa";
+
+/** Vídeo sugerido numa resposta ou numa pesquisa. */
+export interface VideoRef {
+  id: string;
+  title: string;
+  durationSec: number | null;
+  score: number;
+  description?: string | null;
+  /** URL de reprodução assinado (expira); presente na pesquisa, não no histórico. */
+  streamUrl?: string;
+}
+
+export interface VideoInfo {
+  id: string;
+  title: string;
+  description: string | null;
+  fileName: string;
+  mimeType: string;
+  size: number;
+  durationSec: number | null;
+  createdAt: string;
+  streamUrl: string;
+}
 
 export interface ConversationSummary {
   id: string;
@@ -128,6 +152,11 @@ export const api = {
   deleteConversation: (id: string) => request(`/api/conversations/${id}`, { method: "DELETE" }),
   feedback: (messageId: string, rating: 1 | -1 | null) =>
     request(`/api/messages/${messageId}/feedback`, { method: "POST", body: JSON.stringify({ rating }) }),
+  videos: () => request<{ videos: VideoInfo[] }>("/api/videos"),
+  video: (id: string) => request<{ video: VideoInfo }>(`/api/videos/${id}`),
+  updateVideo: (id: string, data: { title?: string; description?: string | null }) =>
+    request<{ video: VideoInfo }>(`/api/videos/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
+  deleteVideo: (id: string) => request(`/api/videos/${id}`, { method: "DELETE" }),
   documents: () => request<{ documents: DocumentInfo[] }>("/api/documents"),
   job: (id: string) => request<{ job: IngestJob }>(`/api/documents/jobs/${id}`),
   deleteDocument: (id: string) => request(`/api/documents/${id}`, { method: "DELETE" }),
@@ -135,45 +164,60 @@ export const api = {
   search: (q: string, category?: string) => {
     const p = new URLSearchParams({ q, topK: "8", minScore: "0" });
     if (category) p.set("category", category);
-    return request<{ results: SearchResult[] }>(`/api/search?${p}`);
+    return request<{ results: SearchResult[]; videos: VideoRef[] }>(`/api/search?${p}`);
   },
 };
 
-/** Upload com progresso de envio (XHR, porque fetch não expõe progresso de upload). */
-export function uploadManual(
-  file: File,
-  title: string,
-  version: string,
-  onUploadProgress: (fraction: number) => void,
-): Promise<IngestJob> {
+/**
+ * Envia um formulário com progresso (XHR, porque fetch não expõe progresso de upload).
+ * Os campos vão antes do ficheiro: o servidor só os lê se chegarem primeiro.
+ */
+function uploadForm<T>(url: string, fields: Record<string, string>, file: File, onProgress: (fraction: number) => void): Promise<T> {
   return new Promise((resolve, reject) => {
     const form = new FormData();
-    // Campos antes do ficheiro: o servidor só os lê se chegarem primeiro
-    form.append("title", title);
-    form.append("version", version);
+    for (const [k, v] of Object.entries(fields)) form.append(k, v);
     form.append("file", file);
     const xhr = new XMLHttpRequest();
-    xhr.open("POST", "/api/documents");
+    xhr.open("POST", url);
     if (auth.token) xhr.setRequestHeader("Authorization", `Bearer ${auth.token}`);
-    xhr.upload.onprogress = (e) => e.lengthComputable && onUploadProgress(e.loaded / e.total);
+    xhr.upload.onprogress = (e) => e.lengthComputable && onProgress(e.loaded / e.total);
     xhr.onload = () => {
-      let data: { job?: IngestJob; error?: string } = {};
+      let data: T & { error?: string } = {} as T & { error?: string };
       try {
         data = JSON.parse(xhr.responseText);
       } catch {
-        /* resposta não JSON */
+        /* resposta não JSON (ex.: 413 do Nginx) */
       }
       if (xhr.status === 401) onUnauthorized();
-      if (xhr.status >= 200 && xhr.status < 300 && data.job) resolve(data.job);
-      else reject(new ApiError(xhr.status, data.error ?? "Erro no upload"));
+      if (xhr.status >= 200 && xhr.status < 300) resolve(data);
+      else reject(new ApiError(xhr.status, data.error ?? (xhr.status === 413 ? "Ficheiro demasiado grande para o servidor" : "Erro no upload")));
     };
     xhr.onerror = () => reject(new ApiError(0, "Falha de ligação durante o upload"));
     xhr.send(form);
   });
 }
 
+export const uploadManual = (file: File, title: string, version: string, onProgress: (fraction: number) => void) =>
+  uploadForm<{ job: IngestJob }>("/api/documents", { title, version }, file, onProgress).then((d) => d.job);
+
+export const uploadVideo = (
+  file: File,
+  data: { title: string; description: string; durationSec?: number },
+  onProgress: (fraction: number) => void,
+) =>
+  uploadForm<{ video: VideoInfo }>(
+    "/api/videos",
+    {
+      title: data.title,
+      ...(data.description ? { description: data.description } : {}),
+      ...(data.durationSec != null ? { durationSec: String(Math.round(data.durationSec)) } : {}),
+    },
+    file,
+    onProgress,
+  ).then((d) => d.video);
+
 export interface ChatHandlers {
-  onMeta: (m: { conversationId: string; userMessageId: string; sources: Source[]; mode: Mode }) => void;
+  onMeta: (m: { conversationId: string; userMessageId: string; sources: Source[]; videos: VideoRef[]; mode: Mode }) => void;
   onDelta: (text: string) => void;
   onDone: (m: { messageId: string }) => void;
   onError: (error: string) => void;

@@ -8,6 +8,7 @@ Por decisão do projeto, a IA fica para depois (`AI_ENABLED=false`):
 - Pesquisa por palavras-chave em português (Postgres full-text, coluna `Chunk.tsv`), sem serviços externos.
 - O chat devolve as secções do manual mais relevantes, com os termos destacados e a secção/página.
 - O código de IA (Voyage + Claude) mantém-se e liga-se com `AI_ENABLED=true` + `npm run embed:backfill`.
+- Vídeos de apoio (`Video`): guardados no VPS (`VIDEO_DIR`), pesquisáveis pelo título/descrição (coluna `Video.tsv`); sugeridos nas respostas do chat.
 
 ## Objetivo
 Reduzir tempo de diagnóstico de avarias, disponibilizando o conhecimento do manual de forma pesquisável e conversacional.

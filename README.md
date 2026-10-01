@@ -49,9 +49,18 @@ npm run dev                   # http://localhost:5173 (proxy /api → :3000)
 
 Há um PDF fictício para testes em `backend/fixtures/manual-exemplo.pdf`.
 
+## Vídeos
+
+Separador **Biblioteca → Vídeos** (administradores): carregar MP4 (recomendado), WebM ou MOV, até 500 MB, com **título** e descrição opcional.
+
+- A pesquisa encontra o vídeo pelo **título** (peso maior) e pela descrição, com as mesmas regras do manual (sem acentos, variações das palavras).
+- No chat, os vídeos relacionados aparecem no topo da resposta; abrem num leitor dentro da aplicação (avançar/recuar suportado).
+- Os ficheiros ficam no VPS em `VIDEO_DIR` (por omissão `backend/storage/videos`) — incluir nos backups.
+- Formato recomendado: **MP4 (H.264 + AAC)**, que reproduz em todos os navegadores. O MOV pode não reproduzir no Chrome/Android.
+
 ## Carregar manuais
 
-**Pela interface (recomendado):** entrar com um utilizador administrador → separador **Manuais** → arrastar o PDF, indicar título e versão → **Carregar manual**. O progresso é mostrado por etapas; no fim aparece o número de páginas e secções indexadas.
+**Pela interface (recomendado):** entrar com um utilizador administrador → separador **Biblioteca → Manuais** → arrastar o PDF, indicar título e versão → **Carregar manual**. O progresso é mostrado por etapas; no fim aparece o número de páginas e secções indexadas.
 
 - Reenviar o mesmo título + versão substitui o manual anterior; uma versão nova fica ao lado.
 - Só PDF com texto selecionável (PDF digitalizado precisa de OCR antes), máx. 100 MB.
@@ -79,6 +88,10 @@ Ou no separador **Pesquisa** da interface.
 | POST | `/api/documents` | (admin) multipart `title`, `version`, `file` → `202 {job}` |
 | GET | `/api/documents/jobs/:id` | (admin) progresso da ingestão |
 | DELETE | `/api/documents/:id` | (admin) apaga o manual e as secções |
+| GET | `/api/videos` | vídeos (com URL de reprodução temporário) |
+| POST | `/api/videos` | (admin) multipart `title`, `description?`, `durationSec?`, `file` |
+| PATCH / DELETE | `/api/videos/:id` | (admin) editar título/descrição / apagar |
+| GET | `/api/videos/:id/stream?t=` | reprodução (Range); token assinado, válido 6 h |
 | POST | `/api/messages/:id/feedback` | `{rating: 1 \| -1 \| null}` — usado na validação (Sprint 5) |
 
 ## Deploy (VPS, fora da rede Unitel)

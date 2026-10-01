@@ -4,3 +4,4 @@ dist/
 *.log
 manuais/*.pdf
 *.tsbuildinfo
+backend/storage/

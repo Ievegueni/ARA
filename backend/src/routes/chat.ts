@@ -3,7 +3,7 @@ import { z } from "zod";
 import { requireAuth } from "../lib/auth.js";
 import { config } from "../config.js";
 import { prisma } from "../lib/db.js";
-import { search, type RetrievedChunk } from "../services/retrieval.js";
+import { search, searchVideos, type RetrievedChunk, type RetrievedVideo } from "../services/retrieval.js";
 import { excerptForDisplay } from "../services/format.js";
 import { answer, NO_CONTEXT_ANSWER, type ChatTurn } from "../services/llm.js";
 
@@ -14,18 +14,31 @@ const chatBody = z.object({
 });
 
 const NO_RESULTS_ANSWER =
-  "Não encontrei no manual nenhuma secção com estes termos. Experimente usar as palavras do manual: " +
+  "Não encontrei no manual nem nos vídeos nada com estes termos. Experimente usar as palavras do manual: " +
   "o nome do alarme, do equipamento ou do sintoma (ex.: “LOS”, “VSWR”, “retificador”).";
 
-/** Resposta do modo sem IA: os excertos mais relevantes, em Markdown (usado para copiar e no histórico). */
-function excerptsAnswer(chunks: RetrievedChunk[]): string {
-  if (!chunks.length) return NO_RESULTS_ANSWER;
-  const intro = chunks.length === 1 ? "Encontrei **1 secção** do manual relacionada:" : `Encontrei **${chunks.length} secções** do manual relacionadas:`;
+type VideoRef = Pick<RetrievedVideo, "id" | "title" | "durationSec" | "score">;
+
+export const fmtDuration = (s: number | null) => (s == null ? "" : `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`);
+
+const plural = (n: number, one: string, many: string) => `**${n} ${n === 1 ? one : many}**`;
+
+/** Resposta do modo sem IA: excertos e vídeos mais relevantes, em Markdown (usado para copiar e no histórico). */
+export function excerptsAnswer(chunks: RetrievedChunk[], videos: VideoRef[] = []): string {
+  if (!chunks.length && !videos.length) return NO_RESULTS_ANSWER;
+  const found = [
+    chunks.length ? `${plural(chunks.length, "secção", "secções")} do manual` : null,
+    videos.length ? plural(videos.length, "vídeo", "vídeos") : null,
+  ].filter(Boolean);
   const parts = chunks.map((c) => {
     const pages = c.pageStart === c.pageEnd ? `p. ${c.pageStart}` : `pp. ${c.pageStart}–${c.pageEnd}`;
     return `### ${c.section}\n*${c.documentTitle} v${c.documentVersion} · ${pages}*\n\n${excerptForDisplay(c)}`;
   });
-  return [intro, ...parts].join("\n\n");
+  if (videos.length) {
+    const list = videos.map((v) => `- ▶ ${v.title}${v.durationSec != null ? ` (${fmtDuration(v.durationSec)})` : ""}`);
+    parts.push(`### Vídeos relacionados\n${list.join("\n")}`);
+  }
+  return [`Encontrei ${found.join(" e ")}:`, ...parts].join("\n\n");
 }
 
 const feedbackBody = z.object({ rating: z.union([z.literal(1), z.literal(-1), z.null()]) });
@@ -120,6 +133,13 @@ export async function chatRoutes(app: FastifyInstance) {
       } else {
         chunks = await search(question, { category, topK: config.KEYWORD_ANSWER_CHUNKS });
       }
+      // Vídeos: pesquisa pelo título/descrição (palavras-chave), com e sem IA
+      const videos: VideoRef[] = (await searchVideos(question)).map(({ id, title, durationSec, score }) => ({
+        id,
+        title,
+        durationSec,
+        score: Number(score.toFixed(3)),
+      }));
       const sources = chunks.map((c) => ({
         chunkId: c.id,
         document: `${c.documentTitle} v${c.documentVersion}`,
@@ -130,11 +150,11 @@ export async function chatRoutes(app: FastifyInstance) {
         // Sem IA o excerto é a própria resposta: texto completo com os termos destacados
         excerpt: mode === "pesquisa" ? excerptForDisplay(c) : c.text.slice(0, 600),
       }));
-      send("meta", { conversationId: conversation.id, userMessageId: userMessage.id, sources, mode });
+      send("meta", { conversationId: conversation.id, userMessageId: userMessage.id, sources, videos, mode });
 
       let text: string;
       if (!config.AI_ENABLED) {
-        text = excerptsAnswer(chunks);
+        text = excerptsAnswer(chunks, videos);
         send("delta", { text });
       } else if (!chunks.length) {
         text = NO_CONTEXT_ANSWER;
@@ -148,7 +168,7 @@ export async function chatRoutes(app: FastifyInstance) {
       }
 
       const saved = await prisma.message.create({
-        data: { conversationId: conversation.id, role: "ASSISTANT", content: text, sources, mode },
+        data: { conversationId: conversation.id, role: "ASSISTANT", content: text, sources, videos, mode },
       });
       await prisma.conversation.update({ where: { id: conversation.id }, data: { updatedAt: new Date() } });
       send("done", { messageId: saved.id });
