@@ -16,6 +16,7 @@ export default defineConfig({
   },
   server: {
     port: 5173,
-    proxy: { "/api": "http://localhost:3000" },
+    // 127.0.0.1 e não localhost: no Windows o Node resolve localhost para IPv6 (::1) e o backend escuta em IPv4
+    proxy: { "/api": "http://127.0.0.1:3000" },
   },
 });

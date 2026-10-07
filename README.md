@@ -36,7 +36,9 @@ deploy/     PM2 + Nginx para o VPS
 
 ## Arranque local
 
-Requisitos: Node 20+, Postgres 16 com `pgvector` (ou `docker compose up -d`).
+**Windows:** ver [docs/WINDOWS.md](docs/WINDOWS.md) — instalação e arranque com dois cliques (`instalar-windows.bat`, `iniciar-windows.bat`).
+
+Requisitos: Node 20.19+, Postgres 16 com `pgvector` (ou `docker compose up -d`, que expõe o Postgres na porta **5433** — usar `DATABASE_URL="postgresql://ara:ara@127.0.0.1:5433/ara"`).
 
 ```bash
 # Backend

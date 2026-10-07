@@ -1,0 +1,3 @@
+# Scripts do Windows: guardar exatamente como estão (CRLF; .ps1 em UTF-8 com BOM para o PowerShell 5.1)
+*.bat -text
+*.ps1 -text

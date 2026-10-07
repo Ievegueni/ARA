@@ -1,4 +1,8 @@
-# Postgres + pgvector para desenvolvimento local
+# Postgres + pgvector para desenvolvimento local (Linux, macOS ou Windows com Docker Desktop).
+# Porta 5433 no computador (5432 dentro do contentor), para não colidir com um PostgreSQL já instalado.
+# Mudar com a variável ARA_DB_PORT (ex.: ARA_DB_PORT=5432 docker compose up -d).
+name: ara
+
 services:
   db:
     image: pgvector/pgvector:pg16
@@ -7,8 +11,15 @@ services:
       POSTGRES_PASSWORD: ara
       POSTGRES_DB: ara
     ports:
-      - "5432:5432"
+      - "127.0.0.1:${ARA_DB_PORT:-5433}:5432"
     volumes:
       - ara-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ara -d ara"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+    restart: unless-stopped
+
 volumes:
   ara-db:
